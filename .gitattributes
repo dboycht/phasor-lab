@@ -1,6 +1,5 @@
 * text=auto eol=lf
-
-*.png binary
-*.jpg binary
-*.woff2 binary
-*.ico binary
+# Windows launchers must be CRLF and pure ASCII: cmd.exe mangles a batch file
+# that mixes non-ASCII content with LF-only line endings.
+*.bat text eol=crlf
+*.cmd text eol=crlf

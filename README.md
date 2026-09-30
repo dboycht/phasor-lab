@@ -52,7 +52,12 @@ The object's expression is rewritten to match, in the same form you typed it.
 
 ## Quick start
 
-The app is a static site; no build step is needed to *use* it if you build once.
+**On Windows, just double-click `start.bat`.** It installs the dependencies and
+builds the app the first time (that needs the network once), then serves it at
+http://localhost:4173/ and opens your browser. Keep its window open while you
+use the app; `start.bat build` forces a rebuild after you change the code.
+
+By hand, the app is a static site — everything under `dist/` is the whole program:
 
 ```bash
 npm install
