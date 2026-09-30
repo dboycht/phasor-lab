@@ -1,0 +1,18 @@
+# build output and dependencies
+node_modules/
+dist/
+dist-ssr/
+
+# local documents that never ship (workspace rules)
+DEVELOPMENT.md
+ERROR.md
+data/
+
+# editor / OS noise
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.local
+*.log

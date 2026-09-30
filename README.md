@@ -1,0 +1,116 @@
+# Phasor Lab · 相量计算器
+
+A phasor / complex-number calculator built for AC circuit analysis, with a
+GeoGebra-style two-pane layout and a **live phasor diagram**.
+Ordinary calculators cannot even type phasor notation; this one is built around it.
+
+一个为**交流电路分析**而生的相量与复数计算器，采用 GeoGebra 风格双栏界面，右侧**实时绘制相量图**。
+普通计算器连相量记号都打不出来，这个工具就是围绕它设计的。
+
+![Phasor Lab, Chinese UI](docs/screenshot-zh.png)
+
+---
+
+## Why another calculator
+
+* **Type phasors the way textbooks write them** — `220\angle 30\degree`, `3+4j`,
+  `220e^{j30\degree}`, `5(\cos 53\degree + j\sin 53\degree)`.
+* **Name things** — `U=220\angle 30\degree\text{V}`, then `I=U/Z`.
+  Subscripts work: `U_1`, `X_{L}`.
+* **See it** — every visible object is drawn as an arrow; phase angles get an arc
+  marker; drag an arrow tip to change the value.
+* **Get the numbers you need** — modulus, argument, real part, imaginary part,
+  conjugate, both RMS and amplitude forms.
+
+## Features
+
+| | |
+| --- | --- |
+| Four input forms | polar, rectangular, exponential, trigonometric (mix them freely in one expression) |
+| Named variables | definitions resolve in **any order** — `I=U/Z` may come before `U` and `Z` |
+| Functions | `\abs \arg \conj \Re \Im \polar \rms \peak \om` plus `sin cos tan` and friends |
+| Live diagram | grid, axes, coloured arrows, labels, phase-angle arc, PNG export |
+| Direct manipulation | drag a tip to edit the phasor, wheel to zoom, drag the background to pan, double-click to fit |
+| Angle units | degrees (default) or radians, switchable at any time |
+| Phasor convention | RMS (default) or amplitude, with an explicit *convert all* action |
+| Bilingual UI | 中文 / English, switchable at runtime |
+| Engine | [mathjs](https://mathjs.org) for evaluation, [MathLive](https://mathlive.io) for input |
+
+### Drag to edit
+
+Drag the tip of an arrow to set a new value. `Shift` keeps the magnitude and only
+changes the angle, `Alt` keeps the angle and only changes the magnitude, and the
+**15° snap** toggle rounds the angle to a multiple of 15°.
+The object's expression is rewritten to match, in the same form you typed it.
+
+## Quick start
+
+The app is a static site; no build step is needed to *use* it if you build once.
+
+```bash
+npm install
+npm run dev        # development server
+npm run build      # type-check + production bundle into dist/
+npm run preview    # serve the built bundle
+npm test           # unit tests
+```
+
+Then open the printed URL.
+
+## Syntax reference
+
+| What | How to type it |
+| --- | --- |
+| Polar | `220\angle 30\degree` or `220\angle 30` (bare number = current angle unit) |
+| Rectangular | `3+4j` |
+| Exponential | `220e^{j30\degree}` |
+| Trigonometric | `5(\cos 53\degree + j\sin 53\degree)` |
+| Definition | `U=220\angle 0\degree\text{V}` — the trailing unit is a display label |
+| Several at once | `U=10;Z=2;I=U/Z` |
+| Modulus / argument | `\abs(Z)`, `\arg(Z)` |
+| Conjugate | `\overline{Z}` or `\conj(Z)` |
+| Any phasor from parts | `\polar(220, 30)` |
+| Amplitude ⇄ RMS | `\peak(x)`, `\rms(x)` |
+| Angular frequency | `\om(50)` = 314.16 |
+
+### The angle model
+
+Three rules, and everything else follows:
+
+1. Expressions are evaluated in **radians** internally.
+2. A **bare number in an angle position** (`220\angle 30`, `\sin 30`) is read in
+   the current angle-unit setting; the `°` sign always means degrees.
+3. **Angle-valued results** (`\arg`, `\asin`, `\atan`, …) come back in the current
+   angle unit, so they compose with bare values — `\phi = \arg(Z)` followed by
+   `220\angle \phi` does what you expect in either unit.
+
+Changing the angle unit re-reads every stored expression, so `220\angle 30` really
+does change meaning between degree and radian mode (that is the point).
+
+### Names
+
+A run of letters is a product of single-letter variables (`abc` = a·b·c), except
+for known function words (`abs`, `arg`, `conj`, …) and known constants
+(`pi`, `e`, `i`, `j`, plus Greek names like `omega`). `U_1` and `X_{L}` are single
+symbols.
+
+## Verification
+
+`npm test` runs 100 unit tests over the LaTeX converter, the formatter, the
+session model and the diagram geometry. The UI itself is checked in a real
+browser: a headless-Chrome harness drives the page through its public handle,
+asserts on computation results and DOM state, samples canvas pixels to confirm
+the arrow is drawn where the phasor points, and exercises drag-to-edit, zoom,
+pan, hide/delete and the convention conversion (28 checks).
+
+## Browser support
+
+Any current Chromium, Firefox or WebKit build. MathLive ships its own fonts, so
+no network access is required at runtime.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+Bundled third-party software: [mathjs](https://mathjs.org) (Apache-2.0),
+[MathLive](https://mathlive.io) (MIT), [KaTeX fonts](https://katex.org) (MIT).

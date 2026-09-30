@@ -1,0 +1,149 @@
+/**
+ * Bilingual UI strings (zh / en). Deliberately tiny: a flat dictionary plus a
+ * `t()` lookup with `{name}` interpolation, and no external dependency.
+ *
+ * The LaTeX vocabulary stays the same in both languages - only the prose and
+ * the labels change.
+ */
+
+export type Lang = 'zh' | 'en'
+
+const STRINGS = {
+  'app.title': { zh: '相量计算器', en: 'Phasor Calculator' },
+  'app.subtitle': { zh: '电工相量/复数计算器', en: 'Phasor & complex calculator for circuit analysis' },
+
+  'input.placeholder': {
+    zh: '输入相量，例如 220\\angle 30\\degree 或 U=220\\angle 30\\degree\\text{V}',
+    en: 'Type a phasor, e.g. 220\\angle 30\\degree or U=220\\angle 30\\degree\\text{V}',
+  },
+  'input.submit': { zh: '输入', en: 'Enter' },
+  'input.clear': { zh: '清空全部', en: 'Clear all' },
+  'input.help': { zh: '语法帮助', en: 'Syntax help' },
+
+  'keyboard.title': { zh: '电工符号', en: 'Symbols' },
+  'keyboard.more': { zh: '更多', en: 'More' },
+
+  'view.algebra': { zh: '代数区', en: 'Algebra' },
+  'view.graphics': { zh: '图形区', en: 'Graphics' },
+  'view.empty': { zh: '还没有定义任何相量', en: 'No phasors defined yet' },
+  'view.emptyHint': { zh: '在上方输入框里输入第一个相量', en: 'Type your first phasor above' },
+
+  'tool.fit': { zh: '适配', en: 'Fit' },
+  'tool.zoomIn': { zh: '放大', en: 'Zoom in' },
+  'tool.zoomOut': { zh: '缩小', en: 'Zoom out' },
+  'tool.grid': { zh: '网格', en: 'Grid' },
+  'tool.snap': { zh: '15° 吸附', en: 'Snap 15°' },
+  'tool.labels': { zh: '标签', en: 'Labels' },
+  'tool.png': { zh: '导出 PNG', en: 'Export PNG' },
+  'tool.sum': { zh: '求和多边形', en: 'Sum polygon' },
+
+  'settings.angleUnit': { zh: '角度单位', en: 'Angle unit' },
+  'settings.deg': { zh: '度', en: 'Deg' },
+  'settings.rad': { zh: '弧度', en: 'Rad' },
+  'settings.convention': { zh: '相量约定', en: 'Convention' },
+  'settings.rms': { zh: '有效值', en: 'RMS' },
+  'settings.amplitude': { zh: '振幅', en: 'Amplitude' },
+  'settings.precision': { zh: '有效数字', en: 'Digits' },
+  'settings.convertAll': { zh: '换算全部', en: 'Convert all' },
+  'settings.language': { zh: '语言', en: 'Language' },
+  'settings.scaled': { zh: '已换算 ×{k}', en: 'converted ×{k}' },
+
+  'result.title': { zh: '结果', en: 'Result' },
+  'result.selected': { zh: '选中', en: 'Selected' },
+  'result.magnitude': { zh: '模 |Z|', en: 'Modulus |Z|' },
+  'result.argument': { zh: '辐角 arg', en: 'Argument' },
+  'result.real': { zh: '实部', en: 'Real' },
+  'result.imag': { zh: '虚部', en: 'Imaginary' },
+  'result.conjugate': { zh: '共轭', en: 'Conjugate' },
+  'result.rect': { zh: '代数形式', en: 'Rectangular' },
+  'result.polar': { zh: '极坐标形式', en: 'Polar' },
+  'result.exponential': { zh: '指数形式', en: 'Exponential' },
+  'result.trig': { zh: '三角形式', en: 'Trigonometric' },
+  'result.effective': { zh: '有效值', en: 'RMS value' },
+  'result.peak': { zh: '振幅', en: 'Amplitude' },
+  'result.none': { zh: '点击左侧对象查看详情，或直接输入表达式', en: 'Select an object on the left, or just type an expression' },
+
+  'object.hide': { zh: '隐藏', en: 'Hide' },
+  'object.show': { zh: '显示', en: 'Show' },
+  'object.delete': { zh: '删除', en: 'Delete' },
+  'object.error': { zh: '无法求值', en: 'Cannot evaluate' },
+
+  'help.title': { zh: '语法速查', en: 'Syntax cheat sheet' },
+  'help.polar': { zh: '极坐标：220\\angle 30\\degree 或 220\\angle 30', en: 'Polar: 220\\angle 30\\degree or 220\\angle 30' },
+  'help.rect': { zh: '代数：3+4j', en: 'Rectangular: 3+4j' },
+  'help.exp': { zh: '指数：220e^{j30\\degree}', en: 'Exponential: 220e^{j30\\degree}' },
+  'help.trig': { zh: '三角：5(\\cos 53\\degree + j\\sin 53\\degree)', en: 'Trigonometric: 5(\\cos 53\\degree + j\\sin 53\\degree)' },
+  'help.assign': { zh: '定义变量：U=220\\angle 0\\degree\\text{V}', en: 'Define: U=220\\angle 0\\degree\\text{V}' },
+  'help.multi': { zh: '多语句用分号隔开：U=10;I=U/5', en: 'Separate statements with a semicolon: U=10;I=U/5' },
+  'help.funcs': { zh: '函数：\\abs \\arg \\conj \\Re \\Im \\polar \\rms \\peak \\om', en: 'Functions: \\abs \\arg \\conj \\Re \\Im \\polar \\rms \\peak \\om' },
+  'help.units': { zh: '角度：\\degree 恒为度；裸数字按当前角度单位', en: 'Angles: \\degree is always degrees; a bare number follows the angle unit' },
+  'help.close': { zh: '关闭', en: 'Close' },
+
+  'status.ready': { zh: '就绪', en: 'Ready' },
+  'status.ok': { zh: '已计算', en: 'Computed' },
+  'status.drag': { zh: '拖动箭头端点可改值：Shift 只改角度 · Alt 只改模', en: 'Drag an arrow tip to edit: Shift = angle only, Alt = magnitude only' },
+
+  'err.empty': { zh: '输入为空', en: 'Empty input' },
+  'err.unknown-command': { zh: '不认识的命令 {detail}', en: 'Unknown command {detail}' },
+  'err.unexpected-token': { zh: '多余的符号 {detail}', en: 'Unexpected symbol {detail}' },
+  'err.missing-operand': { zh: '缺少操作数（{detail}）', en: 'Missing operand ({detail})' },
+  'err.missing-right-operand': { zh: '角度符号右侧缺少数值', en: 'The angle sign needs a value on its right' },
+  'err.chained-angle': { zh: '不能连续写两个角度符号', en: 'Two angle signs in a row' },
+  'err.two-numbers': { zh: '两个数字相邻，缺少运算符：{detail}', en: 'Two numbers are adjacent; an operator is missing: {detail}' },
+  'err.unclosed-brace': { zh: '括号没有闭合：{detail}', en: 'Unclosed bracket: {detail}' },
+  'err.unclosed-pipe': { zh: '竖线没有闭合', en: 'Unclosed vertical bar' },
+  'err.bad-assignment': { zh: '等号左边必须是单个变量名', en: 'The left of "=" must be a single variable name' },
+  'err.eval': { zh: '无法求值：{detail}', en: 'Cannot evaluate: {detail}' },
+} as const
+
+export type StringKey = keyof typeof STRINGS
+
+let current: Lang = detectLang()
+
+function detectLang(): Lang {
+  try {
+    const saved = localStorage.getItem('phasor-lab.lang')
+    if (saved === 'zh' || saved === 'en') return saved
+  } catch { /* storage may be unavailable */ }
+  const nav = typeof navigator !== 'undefined' ? navigator.language : 'en'
+  return nav.toLowerCase().startsWith('zh') ? 'zh' : 'en'
+}
+
+export function getLang(): Lang {
+  return current
+}
+
+export function setLang(lang: Lang): void {
+  current = lang
+  try { localStorage.setItem('phasor-lab.lang', lang) } catch { /* ignore */ }
+  if (typeof document !== 'undefined') document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en'
+}
+
+export function t(key: StringKey, params?: Record<string, string | number>): string {
+  const entry = STRINGS[key] as Record<Lang, string>
+  let s = entry[current] ?? entry.en
+  if (params) {
+    for (const [k, v] of Object.entries(params)) s = s.split(`{${k}}`).join(String(v))
+  }
+  return s
+}
+
+/** Turn a raw evaluator message into something a human wants to read. */
+export function translateEvalError(message: string): string {
+  const undefinedSymbol = /Undefined symbol (\S+)/.exec(message)
+  if (undefinedSymbol) {
+    return current === 'zh'
+      ? `未定义的变量 ${undefinedSymbol[1]}`
+      : `Undefined variable ${undefinedSymbol[1]}`
+  }
+  if (/not a number/.test(message)) {
+    return current === 'zh' ? '结果不是数值' : 'The result is not a number'
+  }
+  if (/Unexpected type of argument/.test(message)) {
+    return current === 'zh' ? '参数类型不对' : 'Wrong argument type'
+  }
+  if (/Division by zero/.test(message)) {
+    return current === 'zh' ? '除数为零' : 'Division by zero'
+  }
+  return message
+}

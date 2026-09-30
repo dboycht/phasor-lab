@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="description" content="Phasor / complex calculator for circuit analysis with live phasor diagram. 电工相量计算器，实时绘制相量图。" />
+    <title>相量计算器 · Phasor Lab</title>
+  </head>
+  <body>
+    <div class="app" id="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo" aria-hidden="true">∠</span>
+          <div class="brand-text">
+            <h1 id="app-title">相量计算器</h1>
+            <p id="app-subtitle"></p>
+          </div>
+        </div>
+        <nav class="topbar-controls" id="topbar-controls" aria-label="settings"></nav>
+      </header>
+
+      <main class="workspace" id="workspace">
+        <section class="pane pane-algebra" aria-labelledby="algebra-title">
+          <div class="pane-header">
+            <h2 id="algebra-title">代数区</h2>
+            <div class="pane-actions">
+              <button type="button" class="btn ghost" id="btn-help">?</button>
+              <button type="button" class="btn ghost" id="btn-clear">清空</button>
+            </div>
+          </div>
+
+          <div class="input-area">
+            <math-field id="input" class="math-input" aria-label="phasor input"></math-field>
+            <div class="keyboard" id="keyboard"></div>
+            <p class="input-error" id="input-error" hidden></p>
+          </div>
+
+          <div class="object-list" id="object-list"></div>
+          <div class="result-card" id="result-card"></div>
+        </section>
+
+        <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" tabindex="0"></div>
+
+        <section class="pane pane-graphics" aria-labelledby="graphics-title">
+          <div class="pane-header">
+            <h2 id="graphics-title">图形区</h2>
+            <div class="pane-actions graphics-tools" id="graphics-tools"></div>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="canvas"></canvas>
+          </div>
+          <p class="status" id="status"></p>
+        </section>
+      </main>
+
+      <dialog class="help-dialog" id="help-dialog">
+        <h2 id="help-title">语法速查</h2>
+        <ul id="help-list"></ul>
+        <form method="dialog"><button class="btn primary" id="help-close">关闭</button></form>
+      </dialog>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

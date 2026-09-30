@@ -1,0 +1,42 @@
+{
+  "name": "phasor-lab",
+  "version": "1.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Phasor calculator for AC circuits: multi-form phasor input, named variables, live phasor diagram, magnitude & argument functions. GeoGebra-style UI.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dboycht/phasor-lab.git"
+  },
+  "homepage": "https://github.com/dboycht/phasor-lab#readme",
+  "bugs": "https://github.com/dboycht/phasor-lab/issues",
+  "keywords": [
+    "phasor",
+    "complex-numbers",
+    "ac-circuits",
+    "electrical-engineering",
+    "calculator",
+    "mathlive",
+    "mathjs",
+    "相量",
+    "电工"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "mathjs": "^15.2.0",
+    "mathlive": "^0.110.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.12",
+    "vitest": "^3.2.4"
+  }
+}
