@@ -38,7 +38,7 @@ const FUNCTIONS: KeyDef[] = [
   { label: '\\conj(\\;)', insert: '\\conj(#?)', title: '共轭 / conjugate' },
   { label: '\\Re(\\;)', insert: '\\Re(#?)', title: '实部 / real part' },
   { label: '\\Im(\\;)', insert: '\\Im(#?)', title: '虚部 / imaginary part' },
-  { label: '\\polar(\\;,\\;)', insert: '\\polar(#?, #?)', title: '由模和辐角构造相量' },
+  { label: '\\polar(\\;,\\;)', insert: '\\polar(#?, #?)', title: '由模和辐角构造相量 / phasor from modulus and angle' },
   { label: '\\rms(\\;)', insert: '\\rms(#?)', title: '有效值 / RMS' },
   { label: '\\peak(\\;)', insert: '\\peak(#?)', title: '振幅 / amplitude' },
   { label: '\\om(\\;)', insert: '\\om(#?)', title: 'ω = 2πf' },
@@ -59,6 +59,13 @@ const UNITS: KeyDef[] = [
   { label: '\\text{\\mu F}', insert: '\\text{\\mu F}', title: '微法 / microfarad' },
   { label: '\\text{mH}', insert: '\\text{mH}', title: '毫亨 / millihenry' },
 ]
+
+/**
+ * Every key the keyboard can show, in the order it shows them. Exported so the
+ * unit tests can check the tables themselves (the tooltips are bilingual by
+ * convention, and a CJK-only one would be unreadable in the English UI).
+ */
+export const ALL_KEYS: KeyDef[] = [...PRIMARY, ...UNITS, ...FUNCTIONS]
 
 export function buildKeyboard(host: HTMLElement, onInsert: (key: KeyDef) => void): void {
   host.replaceChildren()
@@ -110,8 +117,7 @@ export function buildKeyboard(host: HTMLElement, onInsert: (key: KeyDef) => void
   host.append(more)
 
   const keys: KeyDef[] = FUNCTIONS
-  for (const key of keys) {
-    const button = document.createElement('button')
+  for (const key of keys) {    const button = document.createElement('button')
     button.type = 'button'
     button.className = 'wide'
     button.title = key.title ?? key.label

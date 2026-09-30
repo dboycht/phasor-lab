@@ -146,7 +146,7 @@ symbols.
 
 ## Verification
 
-`npm test` runs 201 unit tests: the LaTeX converter, the whole documented syntax
+`npm test` runs 206 unit tests: the LaTeX converter, the whole documented syntax
 table (four input forms, the angle model, naming, unit labels, the convention
 factor and twelve rejected inputs), the session model including undo/redo and
 project round-trips, the diagram geometry, the two-phasor comparison, and every
