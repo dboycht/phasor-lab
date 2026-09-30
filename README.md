@@ -96,7 +96,10 @@ npx tauri build                  # also produces an NSIS installer
 
 The executable embeds the whole front end; it only needs the **WebView2 runtime**,
 which ships with Windows 10/11 (and is installed by Edge). Building it needs the
-Rust toolchain plus the MSVC build tools once.
+Rust toolchain plus the MSVC build tools once. The installer
+(`…\bundle\nsis\Phasor Lab_<version>_x64-setup.exe`, ~1.7 MB) installs for the
+current user only, and it is **not code-signed** — Windows SmartScreen will ask
+for confirmation the first time you run either file.
 
 ## Syntax reference
 
