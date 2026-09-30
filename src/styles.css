@@ -305,6 +305,9 @@ math-field.math-input:focus {
 .result-grid dd.copyable { cursor: pointer; border-radius: 4px; padding: 0 3px; margin-left: -3px; }
 .result-grid dd.copyable:hover { background: var(--accent-soft); }
 .result-grid dd.copied { background: #d9f5e3; transition: background 0.2s ease; }
+.compare-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 7px; }
+.compare-bar label { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+.compare-bar select { max-width: 140px; font-size: 12px; padding: 2px 4px; }
 .result-sep { grid-column: 1 / -1; height: 1px; background: var(--border); margin: 4px 0; }
 
 /* ----------------------------------------------------------- graphics pane */

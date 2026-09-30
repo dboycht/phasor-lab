@@ -3,7 +3,7 @@
  * Pure rendering - every interaction is reported through callbacks.
  */
 
-import { t, translateEvalError } from '../i18n'
+import { t, translateEvalError, type StringKey } from '../i18n'
 import {
   argumentOf,
   formatExponential,
@@ -13,6 +13,7 @@ import {
   formatTrig,
   magnitudeOf,
 } from '../core/format'
+import { comparePhasors } from '../core/compare'
 import { objectLatex, type Session } from '../core/session'
 import type { Cx, PhasorObject } from '../core/types'
 import { escapeHtml, renderLatex } from './latexRender'
@@ -154,6 +155,99 @@ export function renderResultCard(
     )
   }
 
+  const dl = buildGrid(rows, onCopy)
+  host.append(dl)
+}
+
+export interface CompareSelection {
+  aId?: number
+  bId?: number
+}
+
+/**
+ * The two-object card: A/B is an impedance when A is a voltage and B a current,
+ * and A*conj(B) is then the complex power. Both come straight out of
+ * `comparePhasors`, so this function only picks objects and formats them.
+ */
+export function renderCompareCard(
+  host: HTMLElement,
+  session: Session,
+  selection: CompareSelection,
+  selectedId: number | undefined,
+  onChange: (next: CompareSelection) => void,
+  onCopy?: (text: string) => void,
+): void {
+  const { angleUnit, precision } = session.settings
+  const usable = session.objects.filter((o) => o.value)
+  const pick = (id: number | undefined): PhasorObject | undefined =>
+    id !== undefined ? usable.find((o) => o.id === id) : undefined
+
+  // A defaults to whatever is selected, so the common case needs one click only
+  const a = pick(selection.aId) ?? pick(selectedId) ?? usable[0]
+  const b = pick(selection.bId)
+
+  host.replaceChildren()
+  const title = document.createElement('h3')
+  title.textContent = t('compare.title')
+  host.append(title)
+
+  const bar = document.createElement('div')
+  bar.className = 'compare-bar'
+  const makeSelect = (labelKey: StringKey, current: PhasorObject | undefined, candidates: PhasorObject[], allowEmpty: boolean, onPick: (id: number | undefined) => void): void => {
+    const label = document.createElement('label')
+    label.textContent = t(labelKey)
+    const select = document.createElement('select')
+    select.className = 'control-select'
+    if (allowEmpty) {
+      const none = document.createElement('option')
+      none.value = ''
+      none.textContent = t('compare.pick')
+      select.append(none)
+    }
+    for (const o of candidates) {
+      const option = document.createElement('option')
+      option.value = String(o.id)
+      option.textContent = o.unit ? `${o.name} (${o.unit})` : o.name
+      select.append(option)
+    }
+    select.value = current ? String(current.id) : ''
+    select.disabled = candidates.length === 0
+    select.addEventListener('change', () => onPick(select.value === '' ? undefined : Number(select.value)))
+    label.append(select)
+    bar.append(label)
+  }
+
+  makeSelect('compare.a', a, usable, false, (id) => onChange({ aId: id, bId: id === selection.bId ? undefined : selection.bId }))
+  makeSelect('compare.b', b, usable.filter((o) => o.id !== a?.id), true, (id) => onChange({ aId: selection.aId, bId: id }))
+  host.append(bar)
+
+  if (!a || !b) {
+    const hint = document.createElement('div')
+    hint.className = 'object-value'
+    hint.textContent = t('compare.hint')
+    host.append(hint)
+    return
+  }
+
+  const comparison = comparePhasors(a.value as Cx, b.value as Cx, angleUnit)
+  if (!comparison) {
+    const hint = document.createElement('div')
+    hint.className = 'object-value'
+    hint.textContent = t('compare.bZero')
+    host.append(hint)
+    return
+  }
+
+  const opts = { angleUnit, precision }
+  host.append(buildGrid([
+    [`${a.name} / ${b.name}`, `${formatPolar(comparison.ratio, opts)}  =  ${formatRect(comparison.ratio, precision)}`],
+    [`${a.name} \u00b7 conj(${b.name})`, `${formatRect(comparison.product, precision)}  =  ${formatPolar(comparison.product, opts)}`],
+    [`\u0394\u03c6 (${a.name} \u2212 ${b.name})`, formatAngle(comparison.deltaAngle, angleUnit, precision)],
+    ['cos \u0394\u03c6', formatNumber(comparison.cosDelta, precision)],
+  ], onCopy))
+}
+
+function buildGrid(rows: Array<[string, string, boolean?]>, onCopy?: (text: string) => void): HTMLElement {
   const dl = document.createElement('dl')
   dl.className = 'result-grid'
   for (const [label, text] of rows) {
@@ -178,7 +272,7 @@ export function renderResultCard(
     }
     dl.append(dt, dd)
   }
-  host.append(dl)
+  return dl
 }
 
 function formatAngle(deg: number, angleUnit: 'deg' | 'rad', precision: number): string {

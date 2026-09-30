@@ -18,7 +18,7 @@ import { getLang, setLang, t, translateEvalError, type Lang, type StringKey } fr
 import { sumOf } from './plot/geometry'
 import { PhasorPanel } from './plot/panel'
 import type { DrawItem } from './plot/renderer'
-import { renderObjectList, renderResultCard } from './ui/algebra'
+import { renderCompareCard, renderObjectList, renderResultCard, type CompareSelection } from './ui/algebra'
 import { buildKeyboard, type KeyDef } from './ui/keyboard'
 import { escapeHtml } from './ui/latexRender'
 
@@ -102,11 +102,14 @@ const $ = <T extends HTMLElement>(id: string): T => {
 const session = new Session(loadSettings())
 let selectedId: number | undefined
 let statusKey: StringKey = 'status.ready'
+/** which two objects the comparison card is looking at */
+let compareSelection: CompareSelection = {}
 
 const input = $<MathfieldElement>('input')
 const inputError = $<HTMLParagraphElement>('input-error')
 const objectList = $('object-list')
 const resultCard = $('result-card')
+const compareCard = $('compare-card')
 const keyboardHost = $('keyboard')
 const topbarControls = $('topbar-controls')
 const graphicsTools = $('graphics-tools')
@@ -397,6 +400,10 @@ function render(): void {
     },
   })
   renderResultCard(resultCard, session, selectedId, copyResult)
+  renderCompareCard(compareCard, session, compareSelection, selectedId, (next) => {
+    compareSelection = next
+    render()
+  }, copyResult)
   statusEl.textContent = `${t(statusKey)} · ${t('status.drag')}`
   ;($('btn-undo') as HTMLButtonElement).disabled = !session.canUndo
   ;($('btn-redo') as HTMLButtonElement).disabled = !session.canRedo
