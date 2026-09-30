@@ -5,6 +5,11 @@ cd /d "%~dp0"
 where node >nul 2>nul
 if errorlevel 1 goto :nonode
 
+rem If something already answers on 4173 - another start.bat window, or a
+rem dev server you left running - do not fight it for the port: just open it.
+powershell -NoProfile -Command "try { $r = Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 http://localhost:4173/; if ($r.StatusCode -eq 200) { exit 0 } } catch {}; exit 1" >nul 2>nul
+if not errorlevel 1 goto :already
+
 set REBUILD=0
 if /i "%~1"=="build" set REBUILD=1
 
@@ -26,6 +31,14 @@ echo Keep this window open while you use it. Press Ctrl+C here to stop.
 echo.
 start "" http://localhost:4173/
 call npx vite preview --port 4173 --strictPort
+exit /b 0
+
+:already
+echo.
+echo Phasor Lab is already serving on http://localhost:4173/ - opening it.
+echo (No second copy was started. Close that window to stop the server.)
+echo.
+start "" http://localhost:4173/
 exit /b 0
 
 :nonode
