@@ -84,7 +84,8 @@ const FUNCTION_COMMANDS: Record<string, string> = {
   arg: 'arg', sin: 'sin', cos: 'cos', tan: 'tan', cot: 'cot', sec: 'sec', csc: 'csc',
   sinh: 'sinh', cosh: 'cosh', tanh: 'tanh', asin: 'asin', acos: 'acos', atan: 'atan',
   arctan: 'atan', arcsin: 'asin', arccos: 'acos',
-  exp: 'exp', ln: 'ln', log: 'log', lg: 'lg', max: 'max', min: 'min',
+  exp: 'exp', ln: 'ln', log: 'log', lg: 'lg', log10: 'log10', log2: 'log2',
+  max: 'max', min: 'min', atan2: 'atan2',
   Re: 're', Im: 'im', abs: 'abs', conj: 'conj', polar: 'polar',
   rms: 'rms', peak: 'peak', om: 'om',
 }
@@ -111,8 +112,12 @@ const FN_TO_MATHJS: Record<string, string> = {
 /** Names that are a single symbol even though they are longer than one letter. */
 const WORD_SYMBOLS = new Set([...Object.values(GREEK), 'pi', 'e', 'i', 'j'])
 
-/** Units accepted after a trailing `\text{...}` / `\mathrm{...}` group (display label only). */
-const UNIT_LABELS = new Set([
+/**
+ * Units we recognise by name, used only to tell the UI which kind of quantity a
+ * value is (`V` vs `A`). A trailing `\text{...}` group is a display label even
+ * when it is not in this list - see `peelUnit`.
+ */
+export const KNOWN_UNITS = new Set([
   'V', 'A', 'W', 'VA', 'var', 'VAR', 'VAr', 'Hz', 'ohm', 'Ohm', '\u03a9', 'S', 'F', 'H',
   'Wb', 'T', 'J', 'C', 'N', 'm', 's', 'ms', 'us', '\u00b5s', 'ns',
   'kV', 'MV', 'GV', 'mV', 'mA', 'kA', '\u00b5A', 'uA', 'nA',
@@ -186,8 +191,16 @@ function lex(src: string): Tok[] {
       const start = i
       const m = /^\\([A-Za-z]+|.)/.exec(s.slice(i))
       if (!m) throw new LatexError('unexpected-token', '\\', i)
-      const name = m[1] as string
+      let name = m[1] as string
       i += m[0].length
+
+      // A known command may carry a digit suffix (`\atan2`, `\log10`), but only
+      // when the whole run is known: `\angle30` must stay `\angle` then `30`.
+      const dm = /^\\([A-Za-z]+\d+)/.exec(s.slice(start))
+      if (dm && (dm[1] as string) in FUNCTION_COMMANDS) {
+        name = dm[1] as string
+        i = start + dm[0].length
+      }
 
       switch (name) {
         case 'frac': case 'dfrac': case 'tfrac':
@@ -550,6 +563,13 @@ function toRadiansExpr(inner: string): string {
 /** Functions whose first argument is an angle. */
 const ANGLE_ARG_FUNCTIONS = new Set(['sin', 'cos', 'tan', 'cot', 'sec', 'csc'])
 
+/** True when argument `idx` of `name` is an angle position. */
+function isAngleArgument(name: string, idx: number): boolean {
+  // polar(r, theta): the second argument is the angle
+  if (name === 'polar') return idx === 1
+  return idx === 0 && ANGLE_ARG_FUNCTIONS.has(name)
+}
+
 /**
  * True when the subtree carries an explicit degree marker somewhere.
  * Such an expression is already in radians, so the angle unit must not be
@@ -612,7 +632,7 @@ export function toExpr(node: Node, angleUnit: AngleUnit = 'deg'): string {
     case 'call': {
       const name = FN_TO_MATHJS[node.name] ?? node.name
       const args = node.args.map((x, idx) =>
-        idx === 0 && ANGLE_ARG_FUNCTIONS.has(name) ? angleToRadians(x, angleUnit) : toExpr(x, angleUnit)
+        isAngleArgument(name, idx) ? angleToRadians(x, angleUnit) : toExpr(x, angleUnit)
       )
       return `${name}(${args.join(', ')})`
     }
@@ -662,13 +682,20 @@ function normalizeUnitLabel(raw: string): string {
   return s.replace(/\\/g, '').replace(/\s+/g, '')
 }
 
+/**
+ * Split a trailing `\text{...}` / `\mathrm{...}` group off as the display label.
+ *
+ * In LaTeX that group is *text*, not mathematics, so it is always a label: it is
+ * never split into single-letter variables and never evaluated. The number keeps
+ * working even when the label is not a unit we know (`220\text{kg}`).
+ */
 function peelUnit(latex: string): { body: string; unit?: string } {
-  const m = /\\(?:text|mathrm)\{([^{}]*)\}\s*$/.exec(latex)
-  if (m) {
-    const label = normalizeUnitLabel((m[1] as string).trim())
-    if (UNIT_LABELS.has(label)) return { body: latex.slice(0, m.index), unit: label }
-  }
-  return { body: latex }
+  const m = /\\(?:text|mathrm|mathit|mathbf|mathsf)\{([^{}]*)\}\s*$/.exec(latex)
+  if (!m) return { body: latex }
+  const label = normalizeUnitLabel((m[1] as string).trim())
+  const body = latex.slice(0, m.index)
+  if (label === '' || body.trim() === '') return { body: latex }
+  return { body, unit: label }
 }
 
 /** Split a LaTeX input into statements on top-level `;`, newline or `\\`. */
