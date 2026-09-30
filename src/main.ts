@@ -429,7 +429,13 @@ function renderStaticText(): void {
 
   const list = $('help-list')
   list.replaceChildren()
-  for (const key of ['help.polar', 'help.rect', 'help.exp', 'help.trig', 'help.assign', 'help.multi', 'help.funcs', 'help.units'] as StringKey[]) {
+  const keys: StringKey[] = [
+    'help.polar', 'help.rect', 'help.exp', 'help.trig', 'help.assign', 'help.multi',
+    'help.funcs', 'help.units', 'help.labels',
+    'help.edit', 'help.drag', 'help.view', 'help.history', 'help.copy',
+    'help.compare', 'help.examples', 'help.files', 'help.undo',
+  ]
+  for (const key of keys) {
     const li = document.createElement('li')
     const [label, example] = t(key).split(/[:：]/)
     li.innerHTML = `${escapeHtml(label ?? '')}: <code>${escapeHtml(example ?? '')}</code>`

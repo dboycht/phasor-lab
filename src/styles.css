@@ -333,6 +333,10 @@ math-field.math-input:focus {
   border-radius: 10px;
   padding: 16px 18px;
   max-width: 560px;
+  /* the cheat sheet is longer than a short window: keep it inside the viewport
+     and let it scroll, so the close button is always reachable */
+  max-height: min(84vh, 780px);
+  overflow: auto;
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.24);
   color: var(--text);
 }

@@ -123,8 +123,9 @@ The UI itself is checked in a real browser: a headless-Chrome harness drives the
 page through its public handle, asserts on computation results and DOM state,
 samples canvas pixels to confirm the arrow and the sum polygon are drawn where
 they should be, and exercises drag-to-edit, zoom, pan, hide/delete, undo/redo,
-input recall, copy-to-clipboard, the example picker, the comparison card, reload
-persistence and project export/import (41 checks).
+input recall, copy-to-clipboard, the example picker, the comparison card, the
+help dialog, a phone-width layout, reload persistence and project export/import
+(45 checks).
 
 ## Browser support
 
