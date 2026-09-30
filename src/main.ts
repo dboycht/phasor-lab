@@ -10,10 +10,11 @@ import './styles.css'
 import type { MathfieldElement } from 'mathlive'
 
 import { LatexError } from './core/latex'
-import { argumentOf, formatNumber, formatRect, magnitudeOf } from './core/format'
-import { objectLatex, Session } from './core/session'
+import { argumentOf, formatNumber, formatPolar, formatRect, magnitudeOf } from './core/format'
+import { objectLatex, Session, type Project } from './core/session'
 import type { AngleUnit, Cx, PhasorConvention, PhasorObject, Settings } from './core/types'
 import { getLang, setLang, t, translateEvalError, type Lang, type StringKey } from './i18n'
+import { sumOf } from './plot/geometry'
 import { PhasorPanel } from './plot/panel'
 import type { DrawItem } from './plot/renderer'
 import { renderObjectList, renderResultCard } from './ui/algebra'
@@ -23,6 +24,7 @@ import { escapeHtml } from './ui/latexRender'
 // --------------------------------------------------------------- persistence
 
 const SETTINGS_KEY = 'phasor-lab.settings'
+const PROJECT_KEY = 'phasor-lab.project'
 
 function loadSettings(): Partial<Settings> {
   try {
@@ -41,6 +43,22 @@ function loadSettings(): Partial<Settings> {
 
 function saveSettings(s: Settings): void {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)) } catch { /* ignore */ }
+}
+
+function loadStoredProject(): Project | undefined {
+  try {
+    const raw = localStorage.getItem(PROJECT_KEY)
+    if (!raw) return undefined
+    return JSON.parse(raw) as Project
+  } catch {
+    return undefined
+  }
+}
+
+function saveProject(): void {
+  try {
+    localStorage.setItem(PROJECT_KEY, JSON.stringify(session.toProject()))
+  } catch { /* storage full or unavailable: the app still works */ }
 }
 
 // ------------------------------------------------------------------ elements
@@ -120,9 +138,18 @@ const panel = new PhasorPanel($<HTMLCanvasElement>('canvas'), {
   onCommit: commitDrag,
   formatTick: (v) => formatNumber(v, 4),
   angleLabel: panelAngleLabel,
-  sumLabel: () => t('tool.sum'),
+  sumLabel: sumLabelText,
   isDegrees: () => session.settings.angleUnit === 'deg',
 })
+
+/** The sum polygon is labelled with the value it represents. */
+function sumLabelText(): string {
+  const values = session.objects.filter((o) => o.visible && o.value).map((o) => o.value as Cx)
+  if (values.length < 2) return t('tool.sum')
+  const total = sumOf(values)
+  const { angleUnit, precision } = session.settings
+  return `Σ = ${formatPolar(total, { angleUnit, precision })}`
+}
 
 // ---------------------------------------------------------------------- submit
 
@@ -142,8 +169,31 @@ function submitInput(): void {
   selectedId = session.objects.find((o) => !o.error)?.id ?? session.objects[0]?.id
   if (result.transient) selectedId = undefined
   statusKey = 'status.ok'
+  persist()
   render()
   input.focus()
+}
+
+/** Every mutation ends here: the project survives a refresh or a crash. */
+function persist(): void {
+  saveSettings(session.settings)
+  saveProject()
+}
+
+function doUndo(): void {
+  if (!session.undo()) return
+  selectedId = selectedId !== undefined && session.byId(selectedId) ? selectedId : session.objects[0]?.id
+  statusKey = 'status.ready'
+  persist()
+  rebuildUI()
+}
+
+function doRedo(): void {
+  if (!session.redo()) return
+  selectedId = session.byId(selectedId ?? -1) ? selectedId : session.objects[0]?.id
+  statusKey = 'status.ready'
+  persist()
+  rebuildUI()
 }
 
 function describeError(error: { code: string; detail: string }): string {
@@ -164,6 +214,14 @@ function showInputError(message: string | undefined): void {
   }
   inputError.hidden = false
   inputError.textContent = message
+  statusKey = 'status.ready'
+}
+
+function flashStatus(key: StringKey): void {
+  statusEl.textContent = t(key)
+  window.setTimeout(() => {
+    statusEl.textContent = `${t(statusKey)} · ${t('status.drag')}`
+  }, 2500)
 }
 
 /** Dragging an arrow rewrites the object's own expression. */
@@ -173,6 +231,7 @@ function commitDrag(id: number, value: Cx): void {
   const body = bodyForCommit(o, value)
   const result = session.submit(`${o.name}=${body}${o.unit ? `\\text{${o.unit}}` : ''}`)
   if (!result.ok) showInputError(describeError(result.error))
+  persist()
   render()
 }
 
@@ -192,15 +251,28 @@ function bodyForCommit(o: PhasorObject, value: Cx): string {
 function render(): void {
   renderObjectList(objectList, session, selectedId, {
     onSelect: (id) => { selectedId = id; render() },
-    onToggleVisible: (id) => { session.toggleVisible(id); render() },
+    onToggleVisible: (id) => { session.toggleVisible(id); persist(); render() },
     onDelete: (id) => {
       session.remove(id)
       if (selectedId === id) selectedId = session.objects[0]?.id
+      persist()
       render()
+    },
+    onEdit: (id) => {
+      const o = session.byId(id)
+      if (!o) return
+      // put the object's own source back in the input box and edit it there
+      input.value = objectLatex(o)
+      selectedId = id
+      showInputError(undefined)
+      render()
+      input.focus()
     },
   })
   renderResultCard(resultCard, session, selectedId)
   statusEl.textContent = `${t(statusKey)} · ${t('status.drag')}`
+  ;($('btn-undo') as HTMLButtonElement).disabled = !session.canUndo
+  ;($('btn-redo') as HTMLButtonElement).disabled = !session.canRedo
   panel.refit()
 }
 
@@ -212,6 +284,12 @@ function renderStaticText(): void {
   $('graphics-title').textContent = t('view.graphics')
   $('btn-clear').textContent = t('input.clear')
   $('btn-help').textContent = '?'
+  $('btn-help').title = t('input.help')
+  $('btn-undo').title = t('input.undo')
+  $('btn-redo').title = t('input.redo')
+  $('btn-export').title = t('input.export')
+  $('btn-import').title = t('input.import')
+  input.placeholder = t('input.placeholder')
   $('help-title').textContent = t('help.title')
   $('help-close').textContent = t('help.close')
 
@@ -390,12 +468,70 @@ function rebuildUI(): void {
 $('btn-clear').addEventListener('click', () => {
   session.clear()
   selectedId = undefined
+  persist()
   render()
   input.focus()
 })
 
+$('btn-undo').addEventListener('click', doUndo)
+$('btn-redo').addEventListener('click', doRedo)
+
 $('btn-help').addEventListener('click', () => helpDialog.showModal())
 $('help-close').addEventListener('click', () => helpDialog.close())
+
+// Ctrl+Z / Ctrl+Shift+Z (and Ctrl+Y) work anywhere on the page
+window.addEventListener('keydown', (e) => {
+  if (!e.ctrlKey && !e.metaKey) return
+  const k = e.key.toLowerCase()
+  if (k === 'z' && !e.shiftKey) { e.preventDefault(); doUndo() }
+  else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); doRedo() }
+})
+
+// ------------------------------------------------------------ project files
+
+function projectFileName(): string {
+  const d = new Date()
+  const p = (n: number): string => String(n).padStart(2, '0')
+  return `phasor-lab-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.json`
+}
+
+$('btn-export').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(session.toProject(), null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = projectFileName()
+  a.click()
+  URL.revokeObjectURL(url)
+})
+
+const fileInput = $<HTMLInputElement>('file-input')
+
+$('btn-import').addEventListener('click', () => fileInput.click())
+
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files?.[0]
+  if (!file) return
+  void (async () => {
+    try {
+      const project = JSON.parse(await file.text()) as Project
+      const failure = session.loadProject(project)
+      if (failure) {
+        showInputError(t('input.loadFailed', { detail: failure.detail }))
+      } else {
+        selectedId = session.objects[0]?.id
+        showInputError(undefined)
+        persist()
+        rebuildUI()
+        flashStatus('input.loaded')
+      }
+    } catch (e) {
+      showInputError(t('input.loadFailed', { detail: e instanceof Error ? e.message : String(e) }))
+    } finally {
+      fileInput.value = ''
+    }
+  })()
+})
 
 // draggable splitter between the two panes
 ;(() => {
@@ -437,6 +573,15 @@ window.addEventListener('resize', () => panel.resize())
 // ------------------------------------------------------------------ start up
 
 setLang(getLang())
+
+// pick up where the user left off
+const stored = loadStoredProject()
+if (stored && session.loadProject(stored) === undefined) {
+  session.forgetHistory()
+  selectedId = session.objects[0]?.id
+  statusKey = 'input.restored'
+}
+
 rebuildUI()
 panel.resize()
 

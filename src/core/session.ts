@@ -39,6 +39,33 @@ export type SubmitResult =
   | { ok: true; transient?: TransientResult; objects: PhasorObject[] }
   | { ok: false; error: FieldError }
 
+/** One saved project: the source of truth is the LaTeX the user typed. */
+export interface ProjectObject {
+  /** the full source of the object, unit label included */
+  latex: string
+  scale: number
+  visible: boolean
+}
+
+export interface Project {
+  app: 'phasor-lab'
+  /** bump when the shape of this file changes incompatibly */
+  version: 1
+  settings: Settings
+  objects: ProjectObject[]
+}
+
+export const PROJECT_VERSION = 1
+
+interface Snapshot {
+  objects: PhasorObject[]
+  order: number
+  transient?: TransientResult
+  settings: Settings
+}
+
+const HISTORY_LIMIT = 120
+
 let nextId = 1
 
 export class Session {
@@ -49,6 +76,8 @@ export class Session {
   transient?: TransientResult
 
   private order = 0
+  private past: Snapshot[] = []
+  private future: Snapshot[] = []
 
   constructor(settings: Partial<Settings> = {}) {
     this.math = createMath()
@@ -116,6 +145,8 @@ export class Session {
       }
     }
 
+    this.checkpoint()
+
     for (const s of staged) {
       const existing = this.objects.find((o) => o.name === s.name)
       if (existing) {
@@ -167,11 +198,15 @@ export class Session {
 
   remove(id: number): void {
     const i = this.objects.findIndex((o) => o.id === id)
-    if (i >= 0) this.objects.splice(i, 1)
+    if (i < 0) return
+    this.checkpoint()
+    this.objects.splice(i, 1)
     this.rebuild()
   }
 
   clear(): void {
+    if (this.objects.length === 0 && !this.transient) return
+    this.checkpoint()
     this.objects = []
     this.transient = undefined
     this.order = 0
@@ -179,12 +214,14 @@ export class Session {
 
   setVisible(id: number, visible: boolean): void {
     const o = this.objects.find((x) => x.id === id)
-    if (o) o.visible = visible
+    if (!o || o.visible === visible) return
+    this.checkpoint()
+    o.visible = visible
   }
 
   toggleVisible(id: number): void {
     const o = this.objects.find((x) => x.id === id)
-    if (o) o.visible = !o.visible
+    if (o) this.setVisible(id, !o.visible)
   }
 
   /**
@@ -197,6 +234,7 @@ export class Session {
    */
   convertConvention(to: PhasorConvention): void {
     if (to === this.settings.convention) return
+    this.checkpoint()
     const k = to === 'amplitude' ? Math.SQRT2 : Math.SQRT1_2
     for (const o of this.objects) o.scale *= k
     this.settings = { ...this.settings, convention: to }
@@ -205,6 +243,7 @@ export class Session {
 
   updateSettings(patch: Partial<Settings>): void {
     const angleChanged = patch.angleUnit !== undefined && patch.angleUnit !== this.settings.angleUnit
+    this.checkpoint()
     this.settings = { ...this.settings, ...patch }
 
     if (angleChanged) {
@@ -227,6 +266,134 @@ export class Session {
     }
 
     this.rebuild()
+  }
+
+  // --------------------------------------------------------- undo and redo
+
+  get canUndo(): boolean {
+    return this.past.length > 0
+  }
+
+  get canRedo(): boolean {
+    return this.future.length > 0
+  }
+
+  /** Forget the undo history (used after restoring a project at start-up). */
+  forgetHistory(): void {
+    this.past = []
+    this.future = []
+  }
+
+  undo(): boolean {
+    const previous = this.past.pop()
+    if (!previous) return false
+    this.future.push(this.snapshot())
+    this.apply(previous)
+    return true
+  }
+
+  redo(): boolean {
+    const next = this.future.pop()
+    if (!next) return false
+    this.past.push(this.snapshot())
+    this.apply(next)
+    return true
+  }
+
+  /** Remember the current state. Called before every mutation. */
+  private checkpoint(): void {
+    this.past.push(this.snapshot())
+    if (this.past.length > HISTORY_LIMIT) this.past.shift()
+    this.future = []
+  }
+
+  private snapshot(): Snapshot {
+    return {
+      objects: this.objects.map(cloneObject),
+      order: this.order,
+      transient: this.transient
+        ? { ...this.transient, value: { ...this.transient.value } }
+        : undefined,
+      settings: { ...this.settings },
+    }
+  }
+
+  private apply(s: Snapshot): void {
+    this.objects = s.objects.map(cloneObject)
+    this.order = s.order
+    this.transient = s.transient
+      ? { ...s.transient, value: { ...s.transient.value } }
+      : undefined
+    this.settings = { ...s.settings }
+    this.rebuild()
+  }
+
+  // ------------------------------------------------------- project files
+
+  /** The whole session as a portable, human-readable project. */
+  toProject(): Project {
+    return {
+      app: 'phasor-lab',
+      version: PROJECT_VERSION,
+      settings: { ...this.settings },
+      objects: this.objects.map((o) => ({
+        latex: objectLatex(o),
+        scale: o.scale,
+        visible: o.visible,
+      })),
+    }
+  }
+
+  /**
+   * Replace everything with a loaded project.
+   *
+   * The stored LaTeX is re-parsed from scratch, so a file written by an older
+   * version still gets the current semantics (and a broken one is reported
+   * instead of silently producing wrong numbers).
+   */
+  loadProject(project: Project): FieldError | undefined {
+    if (!project || project.app !== 'phasor-lab' || !Array.isArray(project.objects)) {
+      return { code: 'eval', detail: 'bad-project' }
+    }
+    const before = this.snapshot()
+    const savedPast = this.past
+    const savedFuture = this.future
+
+    this.objects = []
+    this.transient = undefined
+    this.order = 0
+    this.settings = { ...DEFAULT_SETTINGS, ...project.settings }
+
+    const scales: number[] = []
+    const visibles: boolean[] = []
+    let failure: FieldError | undefined
+    for (const entry of project.objects) {
+      const result = this.submit(String(entry.latex ?? ''))
+      if (!result.ok) {
+        failure = result.error
+        break
+      }
+      scales.push(typeof entry.scale === 'number' && entry.scale > 0 ? entry.scale : 1)
+      visibles.push(entry.visible !== false)
+    }
+
+    if (failure) {
+      // nothing half-loaded: the previous project stays exactly as it was
+      this.apply(before)
+      this.past = savedPast
+      this.future = savedFuture
+      return failure
+    }
+
+    this.objects.forEach((o, i) => {
+      o.scale = scales[i] ?? 1
+      o.visible = visibles[i] ?? true
+    })
+    // loading is a single user action, so it costs a single undo step
+    this.past = [before]
+    this.future = []
+    this.rebuild()
+    return undefined
   }
 
   // ------------------------------------------------------------ evaluation
@@ -288,6 +455,11 @@ export class Session {
 /** The full LaTeX of an object, unit label included - what the edit box shows. */
 export function objectLatex(o: PhasorObject): string {
   return o.latex + (o.unit ? `\\text{${o.unit}}` : '')
+}
+
+/** Objects are plain data, so a shallow copy plus the value is a real copy. */
+function cloneObject(o: PhasorObject): PhasorObject {
+  return { ...o, value: o.value ? { ...o.value } : null }
 }
 
 /** Apply the per-object convention factor to a freshly evaluated value. */

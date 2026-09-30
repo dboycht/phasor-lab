@@ -21,6 +21,8 @@ export interface AlgebraCallbacks {
   onSelect: (id: number | undefined) => void
   onToggleVisible: (id: number) => void
   onDelete: (id: number) => void
+  /** double-click: load the object back into the input box for editing */
+  onEdit: (id: number) => void
 }
 
 export function renderObjectList(
@@ -92,6 +94,8 @@ function buildRow(o: PhasorObject, session: Session, selected: boolean, cb: Alge
   actions.append(eye, del)
   row.append(swatch, main, actions)
   row.addEventListener('click', () => cb.onSelect(o.id))
+  row.title = t('input.editHint')
+  row.addEventListener('dblclick', () => cb.onEdit(o.id))
   return row
 }
 

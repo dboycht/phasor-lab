@@ -28,9 +28,12 @@ Ordinary calculators cannot even type phasor notation; this one is built around 
 | --- | --- |
 | Four input forms | polar, rectangular, exponential, trigonometric (mix them freely in one expression) |
 | Named variables | definitions resolve in **any order** — `I=U/Z` may come before `U` and `Z` |
-| Functions | `\abs \arg \conj \Re \Im \polar \rms \peak \om` plus `sin cos tan` and friends |
-| Live diagram | grid, axes, coloured arrows, labels, phase-angle arc, PNG export |
+| Functions | `\abs \arg \conj \Re \Im \polar \rms \peak \om` plus `sin cos tan asin atan2` and friends |
+| Live diagram | grid, axes, coloured arrows, labels, phase-angle arc, optional sum polygon, PNG export |
 | Direct manipulation | drag a tip to edit the phasor, wheel to zoom, drag the background to pan, double-click to fit |
+| Edit again | double-click an object to load its own source back into the input box |
+| Undo / redo | every change, including settings, angle-unit switches and the convention conversion |
+| Never lose work | the project is saved in the browser as you type, and can be exported / imported as JSON |
 | Angle units | degrees (default) or radians, switchable at any time |
 | Phasor convention | RMS (default) or amplitude, with an explicit *convert all* action |
 | Bilingual UI | 中文 / English, switchable at runtime |
@@ -70,8 +73,14 @@ Then open the printed URL.
 | Modulus / argument | `\abs(Z)`, `\arg(Z)` |
 | Conjugate | `\overline{Z}` or `\conj(Z)` |
 | Any phasor from parts | `\polar(220, 30)` |
+| Angle of a ratio | `\atan2(y, x)` |
 | Amplitude ⇄ RMS | `\peak(x)`, `\rms(x)` |
 | Angular frequency | `\om(50)` = 314.16 |
+
+A trailing `\text{...}` group is a **display label**, not part of the number:
+`U=220\angle 0\degree\text{V}` shows as 220 V. Any label works (`\text{\Omega}`,
+`\text{k\Omega}`, `\text{\mu F}`, or something entirely your own), and it never
+affects the arithmetic.
 
 ### The angle model
 
@@ -96,12 +105,15 @@ symbols.
 
 ## Verification
 
-`npm test` runs 100 unit tests over the LaTeX converter, the formatter, the
-session model and the diagram geometry. The UI itself is checked in a real
+`npm test` runs 166 unit tests: the LaTeX converter, the whole documented syntax
+table (four input forms, the angle model, naming, unit labels, the convention
+factor and twelve rejected inputs), the session model including undo/redo and
+project round-trips, and the diagram geometry. The UI itself is checked in a real
 browser: a headless-Chrome harness drives the page through its public handle,
 asserts on computation results and DOM state, samples canvas pixels to confirm
-the arrow is drawn where the phasor points, and exercises drag-to-edit, zoom,
-pan, hide/delete and the convention conversion (28 checks).
+the arrow and the sum polygon are drawn where they should be, and exercises
+drag-to-edit, zoom, pan, hide/delete, undo/redo, reload persistence and
+project export/import (35 checks).
 
 ## Browser support
 
