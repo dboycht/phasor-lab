@@ -223,7 +223,9 @@ export function renderCompareCard(
 
   if (!a || !b) {
     const hint = document.createElement('div')
-    hint.className = 'object-value'
+    // a hint is prose: it must wrap. `object-value` is a value cell (monospace,
+    // nowrap, ellipsis), which silently cut the long English hint in half.
+    hint.className = 'card-hint'
     hint.textContent = t('compare.hint')
     host.append(hint)
     return
@@ -232,7 +234,7 @@ export function renderCompareCard(
   const comparison = comparePhasors(a.value as Cx, b.value as Cx, angleUnit)
   if (!comparison) {
     const hint = document.createElement('div')
-    hint.className = 'object-value'
+    hint.className = 'card-hint'
     hint.textContent = t('compare.bZero')
     host.append(hint)
     return
