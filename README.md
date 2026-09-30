@@ -68,6 +68,8 @@ both laws:
 builds the app the first time (that needs the network once), then serves it at
 http://localhost:4173/ and opens your browser. Keep its window open while you
 use the app; `start.bat build` forces a rebuild after you change the code.
+If the app is already being served on that port, it simply opens the browser
+instead of starting a second copy.
 
 By hand, the app is a static site — everything under `dist/` is the whole program:
 
