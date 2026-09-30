@@ -347,6 +347,8 @@ function loadExample(id: string): void {
     showInputError(describeError(failure))
     return
   }
+  // an example that is *about* a phasor sum turns the sum polygon on with it
+  if (example.showSum) panel.showSum = true
   selectedId = session.objects[session.objects.length - 1]?.id
   showInputError(undefined)
   statusKey = 'status.ok'

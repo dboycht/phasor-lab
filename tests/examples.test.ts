@@ -89,4 +89,17 @@ describe('the shipped examples', () => {
     expect(o.get('Z')!.value!.im).toBeCloseTo(-14.4, 9)
     expect(magnitudeOf(o.get('Z')!.value!)).toBeCloseTo(24, 9)
   })
+
+  it('series loop KVL: the source is the phasor sum of the drops', () => {
+    const o = run('kvl')
+    // 60 + j80 - j40 = 60 + 40j, i.e. 72.111 at 33.69 degrees
+    expect(o.get('U')!.value!.re).toBeCloseTo(60, 9)
+    expect(o.get('U')!.value!.im).toBeCloseTo(40, 9)
+    expect(magnitudeOf(o.get('U')!.value!)).toBeCloseTo(Math.sqrt(60 * 60 + 40 * 40), 9)
+  })
+
+  it('only the sum-shaped examples ask for the sum polygon', () => {
+    const withSum = EXAMPLES.filter((e) => e.showSum).map((e) => e.id)
+    expect(withSum).toEqual(['kvl'])
+  })
 })

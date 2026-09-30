@@ -35,7 +35,7 @@ Ordinary calculators cannot even type phasor notation; this one is built around 
 | Recall input | press ↑ in an empty input box to walk back through what you typed before |
 | Copy a result | click any line of the result card to put that number on the clipboard |
 | Compare two quantities | pick A and B: `A/B` is the impedance when A is a voltage and B a current, `A·conj(B)` is the complex power, plus Δφ and cos Δφ |
-| Worked examples | four classic setups (series RLC, power factor, three-phase star, parallel branches) load with one click |
+| Worked examples | five classic setups (series RLC, power factor, three-phase star, parallel branches, a KVL loop) load with one click |
 | Undo / redo | every change, including settings, angle-unit switches and the convention conversion |
 | Never lose work | the project is saved in the browser as you type, and can be exported / imported as JSON |
 | Angle units | degrees (default) or radians, switchable at any time |
@@ -49,6 +49,18 @@ Drag the tip of an arrow to set a new value. `Shift` keeps the magnitude and onl
 changes the angle, `Alt` keeps the angle and only changes the magnitude, and the
 **15° snap** toggle rounds the angle to a multiple of 15°.
 The object's expression is rewritten to match, in the same form you typed it.
+
+### Sums, KVL and KCL
+
+Turn on **sum** in the graphics toolbar and the visible phasors are also drawn
+head-to-tail, with the resultant labelled `Σ = …`. That single picture covers
+both laws:
+
+- **KVL** — around a loop the drops add up to the source. Load the *Series loop
+  KVL* example: `U_R = 60∠0°`, `U_L = 80∠90°`, `U_C = 40∠−90°`, and the chain
+  closes on `U = 60 + 40j = 72.11∠33.69°`.
+- **KCL** — at a node the currents sum to zero, so hide everything except the
+  branch currents and the resultant should land on the origin.
 
 ## Quick start
 
@@ -114,7 +126,7 @@ symbols.
 
 ## Verification
 
-`npm test` runs 199 unit tests: the LaTeX converter, the whole documented syntax
+`npm test` runs 201 unit tests: the LaTeX converter, the whole documented syntax
 table (four input forms, the angle model, naming, unit labels, the convention
 factor and twelve rejected inputs), the session model including undo/redo and
 project round-trips, the diagram geometry, the two-phasor comparison, and every
@@ -125,7 +137,7 @@ samples canvas pixels to confirm the arrow and the sum polygon are drawn where
 they should be, and exercises drag-to-edit, zoom, pan, hide/delete, undo/redo,
 input recall, copy-to-clipboard, the example picker, the comparison card, the
 help dialog, a phone-width layout, reload persistence and project export/import
-(45 checks).
+(46 checks).
 
 ## Browser support
 

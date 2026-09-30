@@ -88,6 +88,7 @@ const STRINGS = {
   'example.power': { zh: '功率与功率因数', en: 'Power and power factor' },
   'example.threePhase': { zh: '三相星形（线电压 √3 倍）', en: 'Three-phase star (√3 line voltage)' },
   'example.parallel': { zh: '并联阻抗', en: 'Parallel impedance' },
+  'example.kvl': { zh: '串联回路 KVL（相量和）', en: 'Series loop KVL (phasor sum)' },
 
   'object.hide': { zh: '隐藏', en: 'Hide' },
   'object.show': { zh: '显示', en: 'Show' },

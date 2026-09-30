@@ -17,6 +17,11 @@ export interface Example {
   labelKey: StringKey
   /** one input line per entry, submitted in order */
   lines: string[]
+  /**
+   * Turn the sum polygon on when this example loads. Only meaningful for the
+   * ones whose whole point is a phasor sum (KVL/KCL).
+   */
+  showSum?: boolean
 }
 
 export const EXAMPLES: Example[] = [
@@ -62,6 +67,19 @@ export const EXAMPLES: Example[] = [
       'Z_1=R',
       'Z_2=-jX_C',
       'Z=Z_1\\cdot Z_2/(Z_1+Z_2)',
+    ],
+  },
+  {
+    // KVL around a series loop: the source equals the phasor sum of the drops.
+    // U_R points right, U_L up and U_C down, so the chain visibly closes on U.
+    id: 'kvl',
+    labelKey: 'example.kvl',
+    showSum: true,
+    lines: [
+      'U_R=60\\angle 0\\degree\\text{V}',
+      'U_L=80\\angle 90\\degree\\text{V}',
+      'U_C=40\\angle -90\\degree\\text{V}',
+      'U=U_R+U_L+U_C',
     ],
   },
 ]
