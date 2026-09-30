@@ -1,0 +1,24 @@
+[package]
+name = "phasor-lab"
+version = "1.0.1"
+description = "Phasor calculator for AC circuits: multi-form input, live phasor diagram"
+authors = ["dboycht"]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/dboycht/phasor-lab"
+# the window shows the build version from package.json; keep this in step with it
+rust-version = "1.77"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+# slimmer release: this is a small app, so size beats compile time here
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

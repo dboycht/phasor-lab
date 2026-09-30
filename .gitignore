@@ -3,6 +3,10 @@ node_modules/
 dist/
 dist-ssr/
 
+# rust build output for the desktop shell (its sources are tracked)
+src-tauri/target/
+src-tauri/gen/
+
 # local documents that never ship (workspace rules)
 DEVELOPMENT.md
 ERROR.md

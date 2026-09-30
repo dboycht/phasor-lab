@@ -1,0 +1,18 @@
+# Cargo source configuration for the desktop shell.
+#
+# Why this file exists: on this network the crates.io *index* answers, but the
+# download CDN (static.crates.io, where the .crate archives live) times out, so
+# a build stalls after the first few megabytes. RsProxy mirrors both, and answers
+# in ~140 ms from here.
+#
+# Building elsewhere? Delete this file (or replace the mirror below) and cargo
+# goes straight to crates.io again.
+
+[source.crates-io]
+replace-with = "rsproxy-sparse"
+
+[source.rsproxy-sparse]
+registry = "sparse+https://rsproxy.cn/index/"
+
+[net]
+git-fetch-with-cli = true

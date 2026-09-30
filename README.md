@@ -81,6 +81,21 @@ npm test           # unit tests
 
 Then open the printed URL.
 
+### Desktop app (Windows)
+
+The same code also builds a self-contained window with [Tauri v2](https://tauri.app),
+so there is no browser and no server to keep open:
+
+```bash
+npm install
+npx tauri build --no-bundle      # -> src-tauri/target/release/phasor-lab.exe
+npx tauri build                  # also produces an NSIS installer
+```
+
+The executable embeds the whole front end; it only needs the **WebView2 runtime**,
+which ships with Windows 10/11 (and is installed by Edge). Building it needs the
+Rust toolchain plus the MSVC build tools once.
+
 ## Syntax reference
 
 | What | How to type it |
