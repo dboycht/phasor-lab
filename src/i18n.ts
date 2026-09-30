@@ -71,6 +71,15 @@ const STRINGS = {
   'result.effective': { zh: '有效值', en: 'RMS value' },
   'result.peak': { zh: '振幅', en: 'Amplitude' },
   'result.none': { zh: '点击左侧对象查看详情，或直接输入表达式', en: 'Select an object on the left, or just type an expression' },
+  'result.copy': { zh: '点击复制这一行', en: 'Click to copy this line' },
+  'result.copied': { zh: '已复制到剪贴板', en: 'Copied to the clipboard' },
+  'result.copyFailed': { zh: '复制失败，请手动选中', en: 'Could not copy; please select it manually' },
+
+  'example.load': { zh: '载入示例…', en: 'Load an example…' },
+  'example.rlc': { zh: '串联 RLC（求电流）', en: 'Series RLC (find the current)' },
+  'example.power': { zh: '功率与功率因数', en: 'Power and power factor' },
+  'example.threePhase': { zh: '三相星形（线电压 √3 倍）', en: 'Three-phase star (√3 line voltage)' },
+  'example.parallel': { zh: '并联阻抗', en: 'Parallel impedance' },
 
   'object.hide': { zh: '隐藏', en: 'Hide' },
   'object.show': { zh: '显示', en: 'Show' },

@@ -163,6 +163,12 @@ select.control-select {
 
 .pane-header h2 { margin: 0; font-size: 12.5px; font-weight: 650; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
 .pane-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pane-header .examples {
+  margin-left: auto;
+  max-width: 210px;
+  font-size: 12px;
+  padding: 3px 6px;
+}
 
 .splitter {
   background: transparent;
@@ -296,6 +302,9 @@ math-field.math-input:focus {
 .result-grid dt { color: var(--text-dim); white-space: nowrap; }
 .result-grid dd { margin: 0; font-family: var(--mono); overflow-wrap: anywhere; }
 .result-grid dd .ML__latex { font-family: var(--sans); }
+.result-grid dd.copyable { cursor: pointer; border-radius: 4px; padding: 0 3px; margin-left: -3px; }
+.result-grid dd.copyable:hover { background: var(--accent-soft); }
+.result-grid dd.copied { background: #d9f5e3; transition: background 0.2s ease; }
 .result-sep { grid-column: 1 / -1; height: 1px; background: var(--border); margin: 4px 0; }
 
 /* ----------------------------------------------------------- graphics pane */

@@ -10,8 +10,9 @@ import './styles.css'
 import type { MathfieldElement } from 'mathlive'
 
 import { LatexError } from './core/latex'
+import { EXAMPLES } from './core/examples'
 import { argumentOf, formatNumber, formatPolar, formatRect, magnitudeOf } from './core/format'
-import { objectLatex, Session, type Project } from './core/session'
+import { objectLatex, PROJECT_VERSION, Session, type Project } from './core/session'
 import type { AngleUnit, Cx, PhasorConvention, PhasorObject, Settings } from './core/types'
 import { getLang, setLang, t, translateEvalError, type Lang, type StringKey } from './i18n'
 import { sumOf } from './plot/geometry'
@@ -25,6 +26,8 @@ import { escapeHtml } from './ui/latexRender'
 
 const SETTINGS_KEY = 'phasor-lab.settings'
 const PROJECT_KEY = 'phasor-lab.project'
+const HISTORY_KEY = 'phasor-lab.history'
+const HISTORY_LIMIT = 50
 
 function loadSettings(): Partial<Settings> {
   try {
@@ -61,6 +64,33 @@ function saveProject(): void {
   } catch { /* storage full or unavailable: the app still works */ }
 }
 
+// ------------------------------------------------------------------- history
+
+function loadInputHistory(): string[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY)
+    if (!raw) return []
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((x): x is string => typeof x === 'string').slice(-HISTORY_LIMIT)
+  } catch {
+    return []
+  }
+}
+
+let inputHistory = loadInputHistory()
+/** equals inputHistory.length when the user is not browsing the history */
+let historyIndex = inputHistory.length
+
+function rememberInput(latex: string): void {
+  if (inputHistory[inputHistory.length - 1] !== latex) {
+    inputHistory.push(latex)
+    if (inputHistory.length > HISTORY_LIMIT) inputHistory.shift()
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(inputHistory)) } catch { /* ignore */ }
+  }
+  historyIndex = inputHistory.length
+}
+
 // ------------------------------------------------------------------ elements
 
 const $ = <T extends HTMLElement>(id: string): T => {
@@ -95,13 +125,41 @@ input.addEventListener('keydown', (ev: KeyboardEvent) => {
   if (ev.key === 'Enter' && !ev.shiftKey) {
     ev.preventDefault()
     submitInput()
+    return
   }
   if (ev.key === 'Escape') {
     input.value = ''
+    historyIndex = inputHistory.length
     showInputError(undefined)
+    return
+  }
+  // ArrowUp recalls earlier input. It only takes over when the field is empty
+  // or the user is already browsing, so moving inside an expression still works.
+  // The value is applied on the next tick: MathLive processes the same keydown
+  // after us and would otherwise overwrite a synchronous assignment.
+  const browsing = historyIndex !== inputHistory.length
+  if (ev.key === 'ArrowUp' && (input.value.trim() === '' || browsing)) {
+    if (inputHistory.length === 0) return
+    ev.preventDefault()
+    historyIndex = Math.max(0, historyIndex - 1)
+    applyToInput(inputHistory[historyIndex] ?? '')
+    return
+  }
+  if (ev.key === 'ArrowDown' && browsing) {
+    ev.preventDefault()
+    historyIndex = Math.min(inputHistory.length, historyIndex + 1)
+    applyToInput(historyIndex === inputHistory.length ? '' : (inputHistory[historyIndex] ?? ''))
   }
 })
 input.addEventListener('input', () => showInputError(undefined))
+
+function applyToInput(latex: string): void {
+  window.setTimeout(() => {
+    if (typeof input.setValue === 'function') input.setValue(latex)
+    else input.value = latex
+    input.focus()
+  }, 0)
+}
 
 function insertKey(key: KeyDef): void {
   input.insert(key.insert)
@@ -166,6 +224,7 @@ function submitInput(): void {
   }
   showInputError(undefined)
   input.value = ''
+  rememberInput(latex)
   selectedId = session.objects.find((o) => !o.error)?.id ?? session.objects[0]?.id
   if (result.transient) selectedId = undefined
   statusKey = 'status.ok'
@@ -224,6 +283,74 @@ function flashStatus(key: StringKey): void {
   }, 2500)
 }
 
+/** Copy a result line, with a fallback for browsers that block the async API. */
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch { /* fall through to the legacy path */ }
+  try {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.setAttribute('readonly', '')
+    ta.style.position = 'fixed'
+    ta.style.opacity = '0'
+    document.body.append(ta)
+    ta.select()
+    const ok = document.execCommand('copy')
+    ta.remove()
+    return ok
+  } catch {
+    return false
+  }
+}
+
+function copyResult(text: string): void {
+  void copyToClipboard(text).then((ok) => flashStatus(ok ? 'result.copied' : 'result.copyFailed'))
+}
+
+// ------------------------------------------------------------------ examples
+
+function buildExamples(): void {
+  const select = $<HTMLSelectElement>('examples')
+  select.replaceChildren()
+  const placeholder = document.createElement('option')
+  placeholder.value = ''
+  placeholder.textContent = t('example.load')
+  select.append(placeholder)
+  for (const example of EXAMPLES) {
+    const option = document.createElement('option')
+    option.value = example.id
+    option.textContent = t(example.labelKey)
+    select.append(option)
+  }
+  select.value = ''
+}
+
+/** Load an example as a project, so it costs exactly one undo step. */
+function loadExample(id: string): void {
+  const example = EXAMPLES.find((e) => e.id === id)
+  if (!example) return
+  const project: Project = {
+    app: 'phasor-lab',
+    version: PROJECT_VERSION,
+    settings: session.settings,
+    objects: example.lines.map((latex) => ({ latex, scale: 1, visible: true })),
+  }
+  const failure = session.loadProject(project)
+  if (failure) {
+    showInputError(describeError(failure))
+    return
+  }
+  selectedId = session.objects[session.objects.length - 1]?.id
+  showInputError(undefined)
+  statusKey = 'status.ok'
+  persist()
+  rebuildUI()
+}
+
 /** Dragging an arrow rewrites the object's own expression. */
 function commitDrag(id: number, value: Cx): void {
   const o = session.objects.find((x) => x.id === id)
@@ -269,7 +396,7 @@ function render(): void {
       input.focus()
     },
   })
-  renderResultCard(resultCard, session, selectedId)
+  renderResultCard(resultCard, session, selectedId, copyResult)
   statusEl.textContent = `${t(statusKey)} · ${t('status.drag')}`
   ;($('btn-undo') as HTMLButtonElement).disabled = !session.canUndo
   ;($('btn-redo') as HTMLButtonElement).disabled = !session.canRedo
@@ -459,6 +586,7 @@ function rebuildUI(): void {
   renderStaticText()
   buildTopbar()
   buildGraphicsTools()
+  buildExamples()
   buildKeyboard(keyboardHost, insertKey)
   render()
 }
@@ -475,6 +603,13 @@ $('btn-clear').addEventListener('click', () => {
 
 $('btn-undo').addEventListener('click', doUndo)
 $('btn-redo').addEventListener('click', doRedo)
+
+$('examples').addEventListener('change', (e) => {
+  const select = e.target as HTMLSelectElement
+  const id = select.value
+  select.value = ''
+  if (id) loadExample(id)
+})
 
 $('btn-help').addEventListener('click', () => helpDialog.showModal())
 $('help-close').addEventListener('click', () => helpDialog.close())
@@ -596,6 +731,8 @@ declare global {
       panel: PhasorPanel
       latexError: typeof LatexError
       objectLatex: (o: PhasorObject) => string
+      /** input history, for automated checks */
+      history: () => { items: string[]; index: number }
       version: string
     }
   }
@@ -612,5 +749,6 @@ window.__PHASOR_LAB__ = {
   panel,
   latexError: LatexError,
   objectLatex,
+  history: () => ({ items: [...inputHistory], index: historyIndex }),
   version: __APP_VERSION__,
 }

@@ -32,6 +32,9 @@ Ordinary calculators cannot even type phasor notation; this one is built around 
 | Live diagram | grid, axes, coloured arrows, labels, phase-angle arc, optional sum polygon, PNG export |
 | Direct manipulation | drag a tip to edit the phasor, wheel to zoom, drag the background to pan, double-click to fit |
 | Edit again | double-click an object to load its own source back into the input box |
+| Recall input | press ↑ in an empty input box to walk back through what you typed before |
+| Copy a result | click any line of the result card to put that number on the clipboard |
+| Worked examples | four classic setups (series RLC, power factor, three-phase star, parallel branches) load with one click |
 | Undo / redo | every change, including settings, angle-unit switches and the convention conversion |
 | Never lose work | the project is saved in the browser as you type, and can be exported / imported as JSON |
 | Angle units | degrees (default) or radians, switchable at any time |
@@ -105,15 +108,17 @@ symbols.
 
 ## Verification
 
-`npm test` runs 166 unit tests: the LaTeX converter, the whole documented syntax
+`npm test` runs 191 unit tests: the LaTeX converter, the whole documented syntax
 table (four input forms, the angle model, naming, unit labels, the convention
 factor and twelve rejected inputs), the session model including undo/redo and
-project round-trips, and the diagram geometry. The UI itself is checked in a real
-browser: a headless-Chrome harness drives the page through its public handle,
-asserts on computation results and DOM state, samples canvas pixels to confirm
-the arrow and the sum polygon are drawn where they should be, and exercises
-drag-to-edit, zoom, pan, hide/delete, undo/redo, reload persistence and
-project export/import (35 checks).
+project round-trips, the diagram geometry, and every shipped example (which is
+evaluated and compared against the textbook answer). The UI itself is checked in
+a real browser: a headless-Chrome harness drives the page through its public
+handle, asserts on computation results and DOM state, samples canvas pixels to
+confirm the arrow and the sum polygon are drawn where they should be, and
+exercises drag-to-edit, zoom, pan, hide/delete, undo/redo, input recall,
+copy-to-clipboard, the example picker, reload persistence and project
+export/import (38 checks).
 
 ## Browser support
 

@@ -100,7 +100,12 @@ function buildRow(o: PhasorObject, session: Session, selected: boolean, cb: Alge
 }
 
 /** The detail card for the selected object (or the last un-assigned result). */
-export function renderResultCard(host: HTMLElement, session: Session, selectedId: number | undefined): void {
+export function renderResultCard(
+  host: HTMLElement,
+  session: Session,
+  selectedId: number | undefined,
+  onCopy?: (text: string) => void,
+): void {
   const { angleUnit, precision, convention } = session.settings
   const selected = selectedId !== undefined ? session.objects.find((o) => o.id === selectedId) : undefined
   const transient = session.transient
@@ -162,6 +167,15 @@ export function renderResultCard(host: HTMLElement, session: Session, selectedId
     dt.textContent = label
     const dd = document.createElement('dd')
     dd.textContent = text
+    if (onCopy) {
+      dd.classList.add('copyable')
+      dd.title = t('result.copy')
+      dd.addEventListener('click', () => {
+        onCopy(text)
+        dd.classList.add('copied')
+        window.setTimeout(() => dd.classList.remove('copied'), 700)
+      })
+    }
     dl.append(dt, dd)
   }
   host.append(dl)
