@@ -1,6 +1,6 @@
 {
   "name": "phasor-lab",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "type": "module",
   "description": "Phasor calculator for AC circuits: multi-form phasor input, named variables, live phasor diagram, magnitude & argument functions. GeoGebra-style UI.",

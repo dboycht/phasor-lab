@@ -146,7 +146,7 @@ symbols.
 
 ## Verification
 
-`npm test` runs 206 unit tests: the LaTeX converter, the whole documented syntax
+`npm test` runs 208 unit tests: the LaTeX converter, the whole documented syntax
 table (four input forms, the angle model, naming, unit labels, the convention
 factor and twelve rejected inputs), the session model including undo/redo and
 project round-trips, the diagram geometry, the two-phasor comparison, and every
@@ -157,7 +157,7 @@ samples canvas pixels to confirm the arrow and the sum polygon are drawn where
 they should be, and exercises drag-to-edit, zoom, pan, hide/delete, undo/redo,
 input recall, copy-to-clipboard, the example picker, the comparison card, the
 help dialog, a phone-width layout, reload persistence and project export/import
-(46 checks).
+(51 checks).
 
 ## Browser support
 

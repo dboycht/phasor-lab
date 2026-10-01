@@ -40,6 +40,13 @@ export function screenToWorld(view: View, x: number, y: number): Cx {
 }
 
 /**
+ * World span used when there is nothing to fit. Without it an empty diagram
+ * collapses to the 1e-9 floor below and the grid reads "2e-10" instead of the
+ * 0.5 / 1 / 1.5 a user expects from an empty coordinate frame.
+ */
+const DEFAULT_SPAN = 2
+
+/**
  * Choose a scale and origin so that every value fits, with the origin kept
  * inside the frame when the data only occupies one quadrant.
  */
@@ -57,8 +64,11 @@ export function fitView(values: Cx[], vp: Viewport, padding = 0.15): View {
   }
   if (!Number.isFinite(minRe)) return { ox: vp.width / 2, oy: vp.height / 2, scale: 40 }
 
-  const spanRe = Math.max(maxRe - minRe, 1e-9)
-  const spanIm = Math.max(maxIm - minIm, 1e-9)
+  // the origin is always in `pts`, so "no data" is not "no points" - it is
+  // "no extent"
+  const degenerate = Math.max(maxRe - minRe, maxIm - minIm) < 1e-9
+  const spanRe = degenerate ? DEFAULT_SPAN : Math.max(maxRe - minRe, 1e-9)
+  const spanIm = degenerate ? DEFAULT_SPAN : Math.max(maxIm - minIm, 1e-9)
   const usableW = vp.width * (1 - 2 * padding)
   const usableH = vp.height * (1 - 2 * padding)
   const scale = Math.max(1e-6, Math.min(usableW / spanRe, usableH / spanIm))

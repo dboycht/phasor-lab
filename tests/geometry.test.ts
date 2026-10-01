@@ -57,10 +57,30 @@ describe('geometry: view transform', () => {
     expect(origin.y).toBeLessThanOrEqual(VP.height)
   })
 
-  it('handles an empty data set', () => {
+  it('handles an empty data set with a usable default view', () => {
     const v = fitView([], VP)
     expect(Number.isFinite(v.scale)).toBe(true)
-    expect(v.scale).toBeGreaterThan(0)
+    // an empty frame must not collapse onto itself: this used to be ~5.7e11,
+    // which made the grid labels read "2e-10" (both weak assertions below the
+    // old test only checked "finite and positive", so it slipped through)
+    expect(v.scale).toBeGreaterThan(1)
+    expect(v.scale).toBeLessThan(1000)
+    const grid = gridLines(v, VP)
+    expect(grid.step).toBeGreaterThanOrEqual(0.1)
+    expect(grid.step).toBeLessThanOrEqual(5)
+  })
+
+  it('falls back to the default view when everything sits on the origin', () => {
+    const v = fitView([{ re: 0, im: 0 }, { re: 0, im: 0 }], VP)
+    expect(v.scale).toBeGreaterThan(1)
+    expect(v.scale).toBeLessThan(1000)
+  })
+
+  it('still fits a genuinely tiny phasor', () => {
+    // a 10 mA current phasor: the fallback must not swallow real (small) data
+    const v = fitView([{ re: 0.01, im: 0 }], VP)
+    const s = worldToScreen(v, { re: 0.01, im: 0 })
+    expect(Math.abs(s.x - v.ox)).toBeGreaterThan(VP.width * 0.4)
   })
 })
 

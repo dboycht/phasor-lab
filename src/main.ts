@@ -154,12 +154,29 @@ input.addEventListener('keydown', (ev: KeyboardEvent) => {
     applyToInput(historyIndex === inputHistory.length ? '' : (inputHistory[historyIndex] ?? ''))
   }
 })
-input.addEventListener('input', () => showInputError(undefined))
+input.addEventListener('input', () => {
+  showInputError(undefined)
+  syncInputEmpty()
+})
+// `value` can also change without an input event (MathLive's own undo, or code
+// setting it), so re-sync whenever the field is entered or leaves.
+input.addEventListener('focus', syncInputEmpty)
+input.addEventListener('change', syncInputEmpty)
+
+/**
+ * Keeps the `is-empty` class in step with the field. MathLive tints `\text{...}`
+ * runs while focused; since the placeholder ends with `\text{V}`, an empty field
+ * would otherwise look as though the last word of the hint were selected.
+ */
+function syncInputEmpty(): void {
+  input.classList.toggle('is-empty', input.value.trim() === '')
+}
 
 function applyToInput(latex: string): void {
   window.setTimeout(() => {
     if (typeof input.setValue === 'function') input.setValue(latex)
     else input.value = latex
+    syncInputEmpty()
     input.focus()
   }, 0)
 }
@@ -227,6 +244,7 @@ function submitInput(): void {
   }
   showInputError(undefined)
   input.value = ''
+  syncInputEmpty()
   rememberInput(latex)
   selectedId = session.objects.find((o) => !o.error)?.id ?? session.objects[0]?.id
   if (result.transient) selectedId = undefined
@@ -395,6 +413,7 @@ function render(): void {
       if (!o) return
       // put the object's own source back in the input box and edit it there
       input.value = objectLatex(o)
+      syncInputEmpty()
       selectedId = id
       showInputError(undefined)
       render()
@@ -733,6 +752,7 @@ if (stored && session.loadProject(stored) === undefined) {
 }
 
 rebuildUI()
+syncInputEmpty()
 panel.resize()
 
 // expose a tiny handle for automated UI checks

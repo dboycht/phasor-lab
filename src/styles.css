@@ -208,7 +208,18 @@ math-field.math-input {
   --contains-highlight-background-color: transparent;
   --smart-fence-color: var(--accent);
   --text-font-family: var(--sans);
+  /* MathLive tints \text{...} runs while the field is focused - its cue for
+     "you are in text mode" (default: hsla(--_hue, 40%, 50%, .6), a solid blue).
+     Keep it as a whisper for real labels, because the unit V in typed input
+     should not look like it is selected. */
+  --text-highlight-background-color: rgba(77, 124, 179, 0.12);
 }
+
+/* ...and drop it completely while the placeholder is showing: the hint ends with
+   \text{V}, so the trailing V was the only tinted atom and the hint looked as if
+   half of it were selected (measured on the packaged build: the DOM selection is
+   collapsed; the blue box was this tint, not a selection). */
+math-field.math-input.is-empty { --text-highlight-background-color: transparent; }
 
 math-field.math-input:focus-within,
 math-field.math-input:focus {
