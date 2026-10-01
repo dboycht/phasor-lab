@@ -131,6 +131,13 @@ A trailing `\text{...}` group is a **display label**, not part of the number:
 `\text{k\Omega}`, `\text{\mu F}`, or something entirely your own), and it never
 affects the arithmetic.
 
+The angle sign takes a magnitude on its left. When the left side is itself a
+phasor, it is **rotated** instead: `A\angle 30\degree` is `A` turned 30° further
+(`A · 1\angle 30\degree`). For a plain magnitude the two readings coincide, so
+`220\angle 30\degree` is unchanged, and `-5\angle 30\degree` still lands on the
+opposite ray. `\polar(r, \theta)` always uses the *size* of `r`, which is what
+"modulus and angle" means.
+
 ### The angle model
 
 Three rules, and everything else follows:
@@ -154,7 +161,7 @@ symbols.
 
 ## Verification
 
-`npm test` runs 220 unit tests: the LaTeX converter, the whole documented syntax
+`npm test` runs 223 unit tests: the LaTeX converter, the whole documented syntax
 table (four input forms, the angle model, naming, unit labels, the convention
 factor and twelve rejected inputs), the session model including undo/redo,
 auto-naming and project round-trips, the diagram geometry, the two-phasor
@@ -166,7 +173,7 @@ samples canvas pixels to confirm the arrow and the sum polygon are drawn where
 they should be, and exercises drag-to-edit, zoom, pan, hide/delete, undo/redo,
 input recall, copy-to-clipboard, the example picker, the comparison card, the
 keyboard groups and their hints, auto-naming, the help dialog, a phone-width
-layout, reload persistence and project export/import (67 checks). It also checks
+layout, reload persistence and project export/import (69 checks). It also checks
 that nothing rendered from LaTeX leaks its own source - across the key labels,
 the hint examples, the algebra rows and the input box itself - and that hovering
 every key moves nothing on the page, which is how several keyboard keys got

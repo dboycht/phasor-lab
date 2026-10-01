@@ -34,20 +34,26 @@ const R30 = 190.52558883257648 // 220*cos30
 
 describe('latex -> expression: code generation', () => {
   it('polar literal with an explicit degree sign', () => {
-    expect(parseStatement('220\\angle 30\\degree').expr).toBe('polar(220, ((30) * pi / 180))')
+    expect(parseStatement('220\\angle 30\\degree').expr).toBe('(220 * polar(1, ((30) * pi / 180)))')
   })
 
   it('polar literal with a bare number uses the angle unit', () => {
-    expect(parseStatement('220\\angle -45', 'deg').expr).toBe('polar(220, (((-45)) * pi / 180))')
-    expect(parseStatement('220\\angle 0.5', 'rad').expr).toBe('polar(220, 0.5)')
+    expect(parseStatement('220\\angle -45', 'deg').expr).toBe('(220 * polar(1, (((-45)) * pi / 180)))')
+    expect(parseStatement('220\\angle 0.5', 'rad').expr).toBe('(220 * polar(1, 0.5))')
   })
 
   it('unicode angle and degree signs behave like the commands', () => {
-    expect(parseStatement('220\u2220 30\u00b0').expr).toBe('polar(220, ((30) * pi / 180))')
+    expect(parseStatement('220\u2220 30\u00b0').expr).toBe('(220 * polar(1, ((30) * pi / 180)))')
   })
 
   it('a degree sign inside a product is not converted twice', () => {
-    expect(parseStatement('220\\angle 2\\cdot 30\\degree').expr).toBe('polar(220, (2 * ((30) * pi / 180)))')
+    expect(parseStatement('220\\angle 2\\cdot 30\\degree').expr).toBe('(220 * polar(1, (2 * ((30) * pi / 180))))')
+  })
+
+  it('the angle sign rotates what is on its left', () => {
+    // `r\angle theta` is generated as `r * 1\angle theta`: identical for a plain
+    // magnitude, and a rotation when the left side is itself a phasor
+    expect(parseStatement('A\\angle 30\\degree').expr).toBe('(A * polar(1, ((30) * pi / 180)))')
   })
 
   it('fraction with an implicit product in the denominator', () => {
@@ -56,14 +62,14 @@ describe('latex -> expression: code generation', () => {
 
   it('a full polar term over a rectangular denominator', () => {
     expect(parseStatement('I=\\frac{220\\angle 0\\degree}{3+4j}').expr)
-      .toBe('(polar(220, ((0) * pi / 180)) / (3 + (4 * j)))')
+      .toBe('((220 * polar(1, ((0) * pi / 180))) / (3 + (4 * j)))')
   })
 
   it('phasor dot is a marker, not a derivative', () => {
     const st = parseStatement('\\dot{U}=220\\angle 30\\degree')
     expect(st.name).toBe('U')
     expect(st.phasorMarked).toBe(true)
-    expect(st.expr).toBe('polar(220, ((30) * pi / 180))')
+    expect(st.expr).toBe('(220 * polar(1, ((30) * pi / 180)))')
   })
 
   it('subscript identifiers survive', () => {
@@ -121,7 +127,7 @@ describe('latex -> expression: code generation', () => {
   it('trailing unit label is peeled off and kept', () => {
     const st = parseStatement('220\\angle 30\\degree\\text{V}')
     expect(st.unit).toBe('V')
-    expect(st.expr).toBe('polar(220, ((30) * pi / 180))')
+    expect(st.expr).toBe('(220 * polar(1, ((30) * pi / 180)))')
   })
 
   it('a frequency unit is also peeled off', () => {

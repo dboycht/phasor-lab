@@ -643,7 +643,13 @@ export function toExpr(node: Node, angleUnit: AngleUnit = 'deg'): string {
     case 'deg':
       return toRadiansExpr(toExpr(node.a, angleUnit))
     case 'polar':
-      return `polar(${toExpr(node.r, angleUnit)}, ${angleToRadians(node.theta, angleUnit)})`
+      // `x\angle theta` means "x at angle theta". Multiplying by the unit phasor
+      // 1\angle theta is the same thing for a real magnitude - including a
+      // negative one, which lands on the opposite ray - but it also gives a
+      // useful answer when the left side is itself a phasor: `A\angle 30`
+      // rotates A by 30 degrees. Feeding a complex number to polar(r, theta)
+      // instead produced NaN (and the UI showed "inf + infj").
+      return `(${toExpr(node.r, angleUnit)} * polar(1, ${angleToRadians(node.theta, angleUnit)}))`
     case 'conj':
       return `conj(${toExpr(node.a, angleUnit)})`
     case 'abs':

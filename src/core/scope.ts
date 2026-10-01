@@ -44,8 +44,14 @@ export function buildScope(math: MathJsInstance, settings: Settings): Record<str
     j: math.complex(0, 1),
 
     // --- phasor constructor: `polar(r, theta)` with theta in RADIANS ---
-    polar: (r: unknown, theta: unknown): CxLike =>
-      math.complex({ r: num(r), phi: num(theta) }) as unknown as CxLike,
+    polar: (r: unknown, theta: unknown): CxLike => {
+      // `r` is a MODULUS, as the name of the key says. A plain number is taken
+      // as a signed magnitude (so -5 is 5 at the opposite ray, the usual
+      // pocket-calculator behaviour); a complex first argument contributes its
+      // size instead of turning the whole result into NaN.
+      const magnitude = typeof r === 'number' ? r : num(lib.abs?.(r))
+      return math.complex({ r: magnitude, phi: num(theta) }) as unknown as CxLike
+    },
 
     // --- modulus / argument ---
     /** magnitude of a phasor (same as the built-in abs, listed for discoverability) */

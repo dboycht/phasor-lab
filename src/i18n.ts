@@ -112,7 +112,7 @@ const STRINGS = {
   'help.multi': { zh: '多语句用分号隔开：U=10;I=U/5', en: 'Separate statements with a semicolon: U=10;I=U/5' },
   'help.autoName': { zh: '自动命名：不写名字的表达式会依次记为 A、B、C…Z、A1；删掉对象后名字可再被使用', en: 'Auto-naming: an expression with no name becomes A, B, C ... Z, A1; a name frees up again when its object is deleted' },
   'help.funcs': { zh: '函数：\\abs \\arg \\conj \\Re \\Im \\polar \\rms \\peak \\om 等（键盘"函数"区可查说明与示例）', en: 'Functions: \\abs \\arg \\conj \\Re \\Im \\polar \\rms \\peak \\om and more (see the Functions group on the keyboard)' },
-  'help.units': { zh: '角度：\\degree 恒为度；裸数字按当前角度单位', en: 'Angles: \\degree is always degrees; a bare number follows the angle unit' },
+  'help.units': { zh: '角度：\\degree 恒为度；裸数字按当前角度单位；\\angle 左边是相量时按旋转理解（A\\angle 30 等于 A 再转 30°）', en: 'Angles: \\degree is always degrees, a bare number follows the angle unit; with a phasor on its left, \\angle rotates it (A\\angle 30 turns A by 30 degrees)' },
   'help.labels': { zh: '单位标签写在末尾：U=220\\angle 0\\degree\\text{V}（任意文字都行，不参与计算）', en: 'A trailing \\text{...} is a label: U=220\\angle 0\\degree\\text{V} (any text, never computed)' },
   'help.edit': { zh: '改一个数：双击对象行，改完回车覆盖它', en: 'Change one number: double-click the row, edit, press Enter' },
   'help.drag': { zh: '拖动箭头端点改值：Shift 只改角度、Alt 只改模、工具栏可开 15° 吸附', en: 'Drag an arrow tip to edit: Shift = angle only, Alt = magnitude only, 15 deg snap in the toolbar' },

@@ -166,6 +166,35 @@ describe('modulus and argument functions', () => {
     expectCx('\\todeg(\\pi)', 180, 0)
     expectCx('\\torad(180)', Math.PI, 0)
   })
+
+  it('the angle sign rotates a phasor on the left, and sets a real one', () => {
+    // a plain magnitude: unchanged behaviour (r * 1\angle theta == r\angle theta)
+    expectCx('220\\angle 30', 220 * Math.cos(30 * D), 220 * Math.sin(30 * D))
+    expectCx('0\\angle 30', 0, 0)
+    // a negative magnitude lands on the opposite ray (pocket-calculator style)
+    expectCx('-5\\angle 30', -5 * Math.cos(30 * D), -5 * Math.sin(30 * D))
+    expectCx('\\polar(-5, 30)', -5 * Math.cos(30 * D), -5 * Math.sin(30 * D))
+    // a complex left side is rotated by the angle instead of producing NaN
+    // (3+4j) at 90 degrees = (3+4j)*j = -4+3j
+    expectCx('(3+4j)\\angle 90', -4, 3)
+    // 25\angle 20 rotated by 30 degrees = 25\angle 50
+    expectCx('\\polar(25,20)\\angle 30', 25 * Math.cos(50 * D), 25 * Math.sin(50 * D))
+    // …and the same through a variable, which is how it was reported
+    const s = new Session()
+    s.submit('A=25\\angle 20')
+    s.submit('B=A\\angle 30')
+    const b = s.objects.find((o) => o.name === 'B')
+    expect(b?.error, `B failed: ${b?.error}`).toBeUndefined()
+    expect(b?.value?.re).toBeCloseTo(25 * Math.cos(50 * D), 9)
+    expect(b?.value?.im).toBeCloseTo(25 * Math.sin(50 * D), 9)
+  })
+
+  it('the polar constructor takes the modulus of a complex first argument', () => {
+    // the key is labelled "modulus and angle": a complex first argument
+    // contributes its size (it used to make the whole result NaN)
+    expectCx('\\polar(3+4j, 90)', 0, 5)
+    expectCx('\\polar(25\\angle 20, 30)', 25 * Math.cos(30 * D), 25 * Math.sin(30 * D))
+  })
 })
 
 describe('naming', () => {
