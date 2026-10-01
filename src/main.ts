@@ -36,7 +36,7 @@ import { getLang, setLang, t, translateEvalError, type Lang, type StringKey } fr
 import { sumOf } from './plot/geometry'
 import { PhasorPanel } from './plot/panel'
 import { drawToSvg, type DrawItem } from './plot/renderer'
-import { renderCompareCard, renderObjectList, renderResultCard, type CompareSelection } from './ui/algebra'
+import { entranceState, renderCompareCard, renderObjectList, renderResultCard, type CompareSelection } from './ui/algebra'
 import { buildKeyboard, type KeyDef } from './ui/keyboard'
 import { escapeHtml, renderLatex } from './ui/latexRender'
 
@@ -1562,6 +1562,8 @@ declare global {
       exportPngDataUrl: (opts: { scale?: number; transparent?: boolean }) => string
       /** the combinations the key handler would answer to right now */
       shortcutCombos: () => string[]
+      /** test hook: whether a row would animate in */
+      entrance: () => { firstRender: boolean; entered: number[] }
     }
   }
 }
@@ -1591,4 +1593,5 @@ window.__PHASOR_LAB__ = {
     drawToSvg(panel.currentState(), { background: transparent ? null : '#ffffff', measure: measureText }),
   exportPngDataUrl: (opts) => panel.toPNG(opts),
   shortcutCombos: () => [...shortcutIndex(session.settings.shortcuts).keys()],
+  entrance: entranceState,
 }

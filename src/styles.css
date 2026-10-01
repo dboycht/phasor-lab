@@ -409,6 +409,140 @@ math-field.math-input:focus {
   min-height: 26px;
 }
 
+/* ----------------------------------------------------------------- motion */
+/*
+ * One restrained vocabulary for the whole app: 160ms in, 120ms out, a 6px rise
+ * and a hair of scale. Enough to show where a thing came from, never enough to
+ * wait for. `prefers-reduced-motion` switches all of it off in one rule.
+ *
+ * Deliberately NOT animated: the result card, the row values and the status
+ * line. They change on every drag frame and every keystroke, and animating them
+ * reads as a flicker rather than as movement.
+ */
+:root {
+  --motion-in: 160ms;
+  --motion-out: 120ms;
+  --motion-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --motion-rise: -6px;
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(var(--motion-rise)); }
+  to { opacity: 1; transform: none; }
+}
+
+/*
+ * Dialog open/close. The exit needs `display` and `overlay` to stay animatable
+ * while the element goes away, which is what `allow-discrete` is for
+ * (Chromium 117+, Firefox 129+, Safari 17.4+). The closed state carries the
+ * *out* timing and the open state the *in* timing, so closing is the quicker of
+ * the two.
+ */
+.help-dialog {
+  opacity: 0;
+  transform: translateY(var(--motion-rise)) scale(0.985);
+  transition:
+    opacity var(--motion-out) var(--motion-ease),
+    transform var(--motion-out) var(--motion-ease),
+    display var(--motion-out) allow-discrete,
+    overlay var(--motion-out) allow-discrete;
+}
+
+.help-dialog[open] {
+  opacity: 1;
+  transform: none;
+  transition-duration: var(--motion-in);
+}
+
+@starting-style {
+  .help-dialog[open] {
+    opacity: 0;
+    transform: translateY(var(--motion-rise)) scale(0.985);
+  }
+}
+
+.help-dialog::backdrop {
+  opacity: 0;
+  transition:
+    opacity var(--motion-out) var(--motion-ease),
+    display var(--motion-out) allow-discrete,
+    overlay var(--motion-out) allow-discrete;
+}
+
+.help-dialog[open]::backdrop {
+  opacity: 1;
+  transition-duration: var(--motion-in);
+}
+
+@starting-style {
+  .help-dialog[open]::backdrop { opacity: 0; }
+}
+
+/* the drop hint fades in over the page instead of appearing all at once */
+.drop-overlay {
+  opacity: 0;
+  transition:
+    opacity var(--motion-out) var(--motion-ease),
+    display var(--motion-out) allow-discrete,
+    overlay var(--motion-out) allow-discrete;
+}
+
+.drop-overlay:not([hidden]) {
+  opacity: 1;
+  transition-duration: var(--motion-in);
+}
+
+@starting-style {
+  .drop-overlay:not([hidden]) { opacity: 0; }
+}
+
+/* the function group is hidden with the `hidden` attribute, and `display: flex`
+   on the container would otherwise win over it (a fold that never folded) */
+.keyboard-keys { transition: opacity var(--motion-out) var(--motion-ease), transform var(--motion-out) var(--motion-ease), display var(--motion-out) allow-discrete; }
+.keyboard-keys[hidden] { display: none; opacity: 0; transform: translateY(-4px); }
+
+/* rows: rising in when they are new, sinking away while they are deleted */
+.object-row.is-new { animation: rise-in var(--motion-in) var(--motion-ease); }
+.object-row.is-leaving {
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--motion-out) var(--motion-ease), transform var(--motion-out) var(--motion-ease);
+}
+
+/* buttons and keys: a short colour transition and a 1px press */
+.btn,
+.keyboard button,
+.object-actions button {
+  transition:
+    background var(--motion-out) ease,
+    border-color var(--motion-out) ease,
+    color var(--motion-out) ease,
+    transform var(--motion-out) ease;
+}
+
+.btn:active,
+.keyboard button:active,
+.object-actions button:active {
+  transform: translateY(1px);
+}
+
+.keyboard button.is-pressed {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  transform: translateY(1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* 0.001ms rather than `none`: the transition events still fire */
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
 /* ----------------------------------------------------------------- dialog */
 
 .help-dialog {

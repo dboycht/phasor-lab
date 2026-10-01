@@ -31,6 +31,24 @@ export interface AlgebraCallbacks {
 /** Which row is being dragged, and where it would land. */
 let dragState: { id: number; above: number } | undefined
 
+/**
+ * When each row first appeared, so a row that is genuinely new animates in and
+ * keeps that for a moment. Tracking a time window rather than a flag matters:
+ * one submit renders the list twice (submit -> render -> refit), and a plain
+ * flag would drop the class on the second render and cut the animation short.
+ */
+const enteredAt = new Map<number, number>()
+/** How long a new row keeps its entrance animation (a bit over --motion-in). */
+const ENTRANCE_MS = 180
+/** How long a removed row lingers while it fades (matches --motion-out). */
+const LEAVE_MS = 120
+let firstRender = true
+
+/** Test hook: what the entrance animation currently considers new. */
+export function entranceState(): { firstRender: boolean; entered: number[] } {
+  return { firstRender, entered: [...enteredAt.keys()] }
+}
+
 export function renderObjectList(
   host: HTMLElement,
   session: Session,
@@ -40,6 +58,9 @@ export function renderObjectList(
   host.replaceChildren()
 
   if (session.objects.length === 0) {
+    // forget the rows entirely, so re-adding the same name animates again
+    enteredAt.clear()
+    firstRender = false
     const empty = document.createElement('div')
     empty.className = 'empty-hint'
     empty.innerHTML = `<strong>${escapeHtml(t('view.empty'))}</strong>${escapeHtml(t('view.emptyHint'))}`
@@ -47,9 +68,20 @@ export function renderObjectList(
     return
   }
 
+  const now = Date.now()
   session.objects.forEach((o, index) => {
-    host.append(buildRow(o, session, selectedId === o.id, index, cb))
+    if (!enteredAt.has(o.id)) enteredAt.set(o.id, now)
+    const startedAt = enteredAt.get(o.id) ?? now
+    // the first paint (page load, project import) is not "something appeared"
+    const isNew = !firstRender && now - startedAt < ENTRANCE_MS
+    host.append(buildRow(o, session, selectedId === o.id, index, isNew, cb))
   })
+  firstRender = false
+  // drop rows that are gone, so their slot in the map cannot grow forever
+  const alive = new Set(session.objects.map((o) => o.id))
+  for (const id of [...enteredAt.keys()]) {
+    if (!alive.has(id)) enteredAt.delete(id)
+  }
 }
 
 function buildRow(
@@ -57,10 +89,12 @@ function buildRow(
   session: Session,
   selected: boolean,
   index: number,
+  isNew: boolean,
   cb: AlgebraCallbacks,
 ): HTMLElement {
   const row = document.createElement('div')
-  row.className = 'object-row' + (selected ? ' selected' : '') + (o.error ? ' error' : '')
+  row.className =
+    'object-row' + (selected ? ' selected' : '') + (o.error ? ' error' : '') + (isNew ? ' is-new' : '')
   row.dataset.id = String(o.id)
   // dragging the row reorders the list; the handlers are below
   row.draggable = true
@@ -103,7 +137,14 @@ function buildRow(
   del.className = 'danger'
   del.title = t('object.delete')
   del.textContent = '✕'
-  del.addEventListener('click', (e) => { e.stopPropagation(); cb.onDelete(o.id) })
+  del.addEventListener('click', (e) => {
+    e.stopPropagation()
+    // let the row sink away before it is actually removed; a second click while
+    // it is leaving must not queue a second removal
+    if (row.classList.contains('is-leaving')) return
+    row.classList.add('is-leaving')
+    window.setTimeout(() => cb.onDelete(o.id), LEAVE_MS)
+  })
 
   actions.append(eye, del)
   row.append(swatch, main, actions)

@@ -168,6 +168,10 @@ export function buildKeyboard(
     }
     button.addEventListener('click', (e) => {
       e.preventDefault()
+      // a short press flash, so a click reads as "this key did something" even
+      // when the symbol lands far away in the input box
+      button.classList.add('is-pressed')
+      window.setTimeout(() => button.classList.remove('is-pressed'), 130)
       onInsert(key)
     })
     if (onHint) {
