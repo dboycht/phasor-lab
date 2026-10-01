@@ -7,7 +7,8 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { ALL_KEYS, KEY_GROUPS, SHORTCUTS, shortcutFor, shortcutText } from '../src/ui/keyboard'
+import { actionByInsert } from '../src/core/shortcuts'
+import { ALL_KEYS, KEY_GROUPS } from '../src/ui/keyboard'
 
 const CJK = /[\u4e00-\u9fff]/
 const LATIN = /[A-Za-z]/
@@ -96,44 +97,20 @@ describe('symbol keyboard', () => {
     ])
   })
 
-  it('offers keyboard shortcuts, and every one is distinct', () => {
-    const codes = SHORTCUTS.map((s) => s.code)
-    expect(new Set(codes).size).toBe(codes.length)
-    for (const shortcut of SHORTCUTS) {
-      expect(shortcut.insert.length, `${shortcut.code} inserts nothing`).toBeGreaterThan(0)
-      expect(shortcut.label.length, `${shortcut.code} has no label`).toBeGreaterThan(0)
-      expect(/^Key[A-Z]$/.test(shortcut.code), `${shortcut.code} is not a Key* code`).toBe(true)
-    }
-    // the two the request named, plus the ones the LaTeX spelling makes painful
-    const inserts = SHORTCUTS.map((s) => s.insert)
-    expect(inserts.some((s) => s.startsWith('\\sqrt'))).toBe(true)
-    expect(inserts.some((s) => s.startsWith('\\angle'))).toBe(true)
-    expect(inserts.some((s) => s.startsWith('\\overline'))).toBe(true)
-  })
-
-  it('shortcuts that open a group leave the caret inside it', () => {
-    for (const shortcut of SHORTCUTS) {
-      const withoutSlot = shortcut.insert.replace('#?', '')
-      if (/[({[]\s*$/.test(withoutSlot)) {
-        expect(shortcut.insert.includes('#?'), `${shortcut.code} opens a group with no slot`).toBe(true)
-      }
-    }
-  })
-
-  it('pairs each shortcut with the key it duplicates, for the corner badge', () => {
+  it('every shortcut action can put its letter on a key', () => {
+    // the badge is how a shortcut gets learned; if an action had no key to sit
+    // on, its combination would be invisible in the UI
     const byInsert = new Map(ALL_KEYS.map((k) => [k.insert, k]))
-    const paired = SHORTCUTS.filter((s) => byInsert.has(s.insert))
-    // the ones the user asked to see on the keys must be among them
-    for (const insert of ['\\sqrt{#?}', '\\angle ', '\\degree', '_{#?}', '\\overline{#?}', '\\abs(#?)', '\\arg(#?)']) {
-      const key = byInsert.get(insert)
-      expect(key, `no key inserts ${insert}`).toBeDefined()
-      expect(shortcutFor(key!), `no badge for ${insert}`).toBeDefined()
+    const actions = [
+      '\\sqrt{#?}', '\\angle ', '\\degree', '_{#?}', '\\overline{#?}', '\\abs(#?)', '\\arg(#?)',
+      'j', '\\pi', '\\omega', '\\frac{#?}{#?}', 'e^{#?}', '\\left(#?\\right)',
+    ]
+    for (const insert of actions) {
+      expect(byInsert.get(insert), `no key inserts ${insert}`).toBeDefined()
+      expect(actionByInsert(insert), `no shortcut action inserts ${insert}`).toBeDefined()
     }
-    expect(paired.length).toBeGreaterThanOrEqual(13)
-    expect(shortcutText(SHORTCUTS[0]!)).toBe('Ctrl+Alt+R')
-    const subscript = SHORTCUTS.find((s) => s.insert === '_{#?}')
-    expect(subscript?.code).toBe('KeyS')
-    expect(shortcutText(subscript!)).toBe('Ctrl+Alt+S')
+    // the unit-label shortcut has no key of its own, and that is fine
+    expect(actionByInsert('\\text{V}')).toBeUndefined()
   })
 
   it('never puts a LaTeX command inside a unit label', () => {

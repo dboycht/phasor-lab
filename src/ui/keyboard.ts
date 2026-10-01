@@ -15,6 +15,7 @@
 
 import type { StringKey } from '../i18n'
 import { t } from '../i18n'
+import { comboText, type ResolvedShortcut } from '../core/shortcuts'
 import { renderLatex } from './latexRender'
 
 export interface KeyDef {
@@ -127,53 +128,13 @@ export const KEY_GROUPS: KeyGroup[] = [
 export const ALL_KEYS: KeyDef[] = KEY_GROUPS.flatMap((g) => g.keys)
 
 /**
- * Keyboard shortcuts that insert a symbol straight into the focused field.
- *
- * They exist because the LaTeX spelling is not always typeable: `\angle`,
- * `\degree`, `\pi` and `\omega` are recognised by the mathfield as you type,
- * but `\sqrt` comes out as `\text{qrt }`, and nobody wants to type
- * `\overline{...}` at all. Ctrl+Alt is used because plain Ctrl+letter is taken
- * by the browser and Ctrl+Alt+letter is free in a page.
- *
- * `code` is a KeyboardEvent.code so the shortcut survives non-Latin layouts.
+ * Shortcuts are defined in `core/shortcuts.ts` (they are settings, so they live
+ * with the other settings). The keyboard only needs to know which insertion
+ * string answers to which combination, to put the letter in the key's corner.
+ * That mapping arrives from the caller, already resolved against the user's
+ * bindings.
  */
-export interface Shortcut {
-  code: string
-  insert: string
-  /** shown in the cheat sheet */
-  label: string
-  autoExit?: boolean
-}
-
-export const SHORTCUTS: Shortcut[] = [
-  { code: 'KeyR', insert: '\\sqrt{#?}', label: '√' },
-  { code: 'KeyA', insert: '\\angle ', label: '∠' },
-  { code: 'KeyD', insert: '\\degree', label: '°' },
-  { code: 'KeyJ', insert: 'j', label: 'j' },
-  { code: 'KeyP', insert: '\\pi', label: 'π' },
-  { code: 'KeyW', insert: '\\omega', label: 'ω' },
-  { code: 'KeyF', insert: '\\frac{#?}{#?}', label: '分数' },
-  { code: 'KeyE', insert: 'e^{#?}', label: 'e^{x}' },
-  { code: 'KeyB', insert: '\\left(#?\\right)', label: '( )' },
-  { code: 'KeyS', insert: '_{#?}', label: '下标', autoExit: true },
-  { code: 'KeyC', insert: '\\overline{#?}', label: '共轭' },
-  { code: 'KeyM', insert: '\\abs(#?)', label: '模' },
-  { code: 'KeyG', insert: '\\arg(#?)', label: '辐角' },
-  { code: 'KeyT', insert: '\\text{#?}', label: '单位标签' },
-]
-
-/** Shortcuts reuse the keyboard's own insertion strings, so they pair up here. */
-const SHORTCUT_BY_INSERT = new Map(SHORTCUTS.map((s) => [s.insert, s]))
-
-/** The shortcut that produces what this key inserts, when there is one. */
-export function shortcutFor(key: KeyDef): Shortcut | undefined {
-  return SHORTCUT_BY_INSERT.get(key.insert)
-}
-
-/** Human-readable form, e.g. `Ctrl+Alt+R`. */
-export function shortcutText(shortcut: Shortcut): string {
-  return `Ctrl+Alt+${shortcut.code.replace(/^Key/, '')}`
-}
+export type ShortcutLookup = ReadonlyMap<string, ResolvedShortcut>
 
 /** Folds the function group away; remembered per session. */
 let functionsFolded = false
@@ -182,6 +143,7 @@ export function buildKeyboard(
   host: HTMLElement,
   onInsert: (key: KeyDef) => void,
   onHint?: (key: KeyDef | null) => void,
+  shortcuts?: ShortcutLookup,
 ): void {
   host.replaceChildren()
 
@@ -189,17 +151,17 @@ export function buildKeyboard(
     const button = document.createElement('button')
     button.type = 'button'
     button.className = 'wide'
-    const shortcut = shortcutFor(key)
+    const shortcut = shortcuts?.get(key.insert)
     // the letter is shown in the corner of the key so it can be learned by
     // looking, and the full combination goes in the tooltip and the hint strip
-    const shortcutLabel = shortcut ? shortcutText(shortcut) : ''
+    const shortcutLabel = shortcut ? comboText(shortcut.effective) : ''
     button.title = shortcut ? `${key.title ?? key.label} · ${shortcutLabel}` : (key.title ?? key.label)
     button.dataset.insert = key.insert
     button.innerHTML = renderLatex(key.label)
-    if (shortcut) {
+    if (shortcut?.keyLabel) {
       const badge = document.createElement('span')
       badge.className = 'key-shortcut'
-      badge.textContent = shortcut.code.replace(/^Key/, '')
+      badge.textContent = shortcut.keyLabel
       badge.setAttribute('aria-hidden', 'true')
       button.append(badge)
       button.dataset.shortcut = shortcutLabel

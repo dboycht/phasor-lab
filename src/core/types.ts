@@ -46,11 +46,20 @@ export interface PhasorObject {
   order: number
 }
 
+/**
+ * User overrides for the symbol shortcuts, keyed by action id: a canonical
+ * combination such as `Ctrl+Alt+KeyR`, or `null` for "switched off". An absent
+ * entry keeps the default, so this object stays small and forward compatible.
+ */
+export type ShortcutBindings = Record<string, string | null>
+
 export interface Settings {
   angleUnit: AngleUnit
   convention: PhasorConvention
   /** significant digits used when formatting numbers */
   precision: number
+  /** symbol shortcuts; absent means "all defaults" */
+  shortcuts?: ShortcutBindings
 }
 
 export const DEFAULT_SETTINGS: Settings = {

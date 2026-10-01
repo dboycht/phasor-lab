@@ -470,6 +470,99 @@ math-field.math-input:focus {
 .equation-check code { font-family: var(--mono); color: var(--text); }
 .equation-ok { color: #15803d; }
 
+/* --------------------------------------------------------------- settings */
+
+.settings-dialog { width: min(660px, 92vw); max-width: 660px; }
+
+.settings-dialog .dialog-body {
+  display: grid;
+  gap: 14px;
+  max-height: min(64vh, 560px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.settings-section { display: grid; gap: 6px; }
+.settings-section h3 { margin: 0; font-size: 13px; font-weight: 700; color: var(--text); }
+
+.settings-block {
+  display: grid;
+  gap: 5px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--panel-alt);
+}
+
+.settings-block-title { font-size: 12px; font-weight: 600; color: var(--text-dim); }
+.settings-buttons { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+.settings-radio,
+.settings-check,
+.settings-field { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text); }
+.settings-radio input,
+.settings-check input { accent-color: var(--accent); }
+.settings-field select { padding: 2px 4px; }
+
+.shortcut-table { display: grid; gap: 4px; }
+
+.shortcut-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto auto;
+  gap: 6px;
+  align-items: center;
+  padding: 3px 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-alt);
+}
+
+.shortcut-row.is-off { opacity: 0.65; }
+.shortcut-row.is-capturing { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+
+.shortcut-name { display: flex; gap: 6px; align-items: baseline; font-size: 12.5px; color: var(--text); }
+
+.shortcut-badge {
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.shortcut-combo { font-family: var(--mono); font-size: 11.5px; color: var(--text); white-space: nowrap; }
+.shortcut-row.is-custom .shortcut-combo { color: var(--accent); }
+.shortcut-row.is-off .shortcut-combo { color: var(--text-dim); text-decoration: line-through; }
+.shortcut-problem { grid-column: 1 / -1; font-size: 11.5px; color: #b91c1c; }
+.shortcut-row .btn { padding: 2px 7px; font-size: 11.5px; }
+
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgba(20, 30, 50, 0.32);
+}
+
+/* `hidden` must win over the display above, or an invisible overlay would keep
+   swallowing every pointer event on the page */
+.drop-overlay[hidden] { display: none; }
+
+.drop-card {
+  padding: 22px 30px;
+  border: 2px dashed var(--accent);
+  border-radius: 12px;
+  background: var(--panel);
+  text-align: center;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.18);
+}
+
+.drop-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.drop-hint { margin-top: 4px; font-size: 12px; color: var(--text-dim); }
+
 /* ------------------------------------------------------------- responsive */
 
 @media (max-width: 860px) {

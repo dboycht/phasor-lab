@@ -32,10 +32,12 @@
               <button type="button" class="btn ghost" id="btn-import">⬆</button>
               <button type="button" class="btn ghost" id="btn-help">?</button>
               <button type="button" class="btn ghost" id="btn-about">ⓘ</button>
+              <button type="button" class="btn ghost" id="btn-settings">⚙</button>
               <button type="button" class="btn ghost" id="btn-clear">清空</button>
             </div>
           </div>
           <input type="file" id="file-input" accept=".json,application/json" hidden />
+          <input type="file" id="csv-input" accept=".csv,text/csv" hidden />
 
           <div class="input-area">
             <math-field id="input" class="math-input" aria-label="phasor input"></math-field>
@@ -85,6 +87,87 @@
         <div id="about-body"></div>
         <form method="dialog"><button class="btn primary" id="about-close">关闭</button></form>
       </dialog>
+
+      <dialog class="help-dialog settings-dialog" id="settings-dialog">
+        <h2 id="settings-title">设置</h2>
+        <div class="dialog-body">
+          <section class="settings-section">
+            <h3 id="settings-shortcuts">快捷键</h3>
+            <p class="card-hint" id="settings-shortcuts-hint"></p>
+            <div class="shortcut-table" id="shortcut-table"></div>
+            <div class="settings-buttons">
+              <button type="button" class="btn" id="shortcuts-reset">全部恢复默认</button>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h3 id="settings-io">导入导出</h3>
+
+            <div class="settings-block">
+              <div class="settings-block-title" id="settings-scope-title">导出范围</div>
+              <label class="settings-radio">
+                <input type="radio" name="export-scope" value="all" checked />
+                <span id="settings-scope-all"></span>
+              </label>
+              <label class="settings-radio">
+                <input type="radio" name="export-scope" value="selected" />
+                <span id="settings-scope-selected"></span>
+              </label>
+              <p class="card-hint" id="settings-summary"></p>
+            </div>
+
+            <div class="settings-block">
+              <div class="settings-block-title" id="settings-project"></div>
+              <div class="settings-buttons">
+                <button type="button" class="btn" id="settings-export-project"></button>
+                <button type="button" class="btn" id="settings-import-project"></button>
+              </div>
+              <p class="card-hint" id="settings-project-hint"></p>
+            </div>
+
+            <div class="settings-block">
+              <div class="settings-block-title" id="settings-csv"></div>
+              <div class="settings-buttons">
+                <button type="button" class="btn" id="settings-export-csv"></button>
+                <button type="button" class="btn" id="settings-import-csv"></button>
+              </div>
+              <p class="card-hint" id="settings-csv-hint"></p>
+            </div>
+
+            <div class="settings-block">
+              <div class="settings-block-title" id="settings-image"></div>
+              <div class="settings-buttons">
+                <label class="settings-field">
+                  <span id="settings-scale"></span>
+                  <select id="settings-scale-select">
+                    <option value="1">1×</option>
+                    <option value="2">2×</option>
+                    <option value="3">3×</option>
+                    <option value="4">4×</option>
+                  </select>
+                </label>
+                <label class="settings-check">
+                  <input type="checkbox" id="settings-transparent" />
+                  <span id="settings-transparent-label"></span>
+                </label>
+              </div>
+              <div class="settings-buttons">
+                <button type="button" class="btn" id="settings-export-png"></button>
+                <button type="button" class="btn" id="settings-export-svg"></button>
+              </div>
+              <p class="card-hint" id="settings-image-hint"></p>
+            </div>
+          </section>
+        </div>
+        <form method="dialog"><button class="btn primary" id="settings-close">关闭</button></form>
+      </dialog>
+
+      <div class="drop-overlay" id="drop-overlay" hidden>
+        <div class="drop-card">
+          <div class="drop-title" id="drop-title"></div>
+          <div class="drop-hint" id="drop-hint"></div>
+        </div>
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -1,9 +1,14 @@
 /**
- * Canvas renderer for the phasor diagram. Drawing only - no state, no events.
+ * Renderer for the phasor diagram. Drawing only - no state, no events.
+ *
+ * Every visual decision lives here once: `draw()` pushes it into a canvas
+ * surface and `drawToSvg()` into an SVG surface, so the on-screen picture and
+ * the exported vector file cannot drift apart.
  */
 
 import type { Cx } from '../core/types'
 import { arcPoints, gridLines, normalizedAngle, worldToScreen, type View, type Viewport } from './geometry'
+import { canvasSurface, svgSurface, type Measure, type Surface } from './surface'
 
 export interface DrawItem {
   id: number
@@ -39,92 +44,127 @@ const COLORS = {
   sum: '#7c3aed',
 }
 
-export function draw(ctx: CanvasRenderingContext2D, st: DrawState): void {
-  const { viewport } = st
-  ctx.save()
-  ctx.clearRect(0, 0, viewport.width, viewport.height)
-  ctx.fillStyle = COLORS.background
-  ctx.fillRect(0, 0, viewport.width, viewport.height)
+/** Alpha of the white plate drawn behind a label, matching the old canvas code. */
+const LABEL_BACKDROP_ALPHA = 0.82
+/** Alpha of the selection marker dot and of the phase-angle arc. */
+const SELECTION_DOT_ALPHA = 0.9
+const SELECTION_ARC_ALPHA = 0.75
+const ANGLE_LABEL_BACKDROP_ALPHA = 0.85
 
-  if (st.showGrid) drawGrid(ctx, st)
-  drawAxes(ctx, st)
+/**
+ * Draw on a canvas. `background: null` leaves the canvas transparent (used by
+ * the "transparent PNG" export); omitted means the usual white page.
+ */
+export function draw(
+  ctx: CanvasRenderingContext2D,
+  st: DrawState,
+  background: string | null | undefined = COLORS.background,
+): void {
+  const s = canvasSurface(ctx, st.viewport.width, st.viewport.height)
+  paint(s, st, background === undefined ? COLORS.background : background)
+}
+
+export interface SvgOptions {
+  /** defaults to the state viewport */
+  width?: number
+  height?: number
+  /** text metrics; the default is a deterministic estimate */
+  measure?: Measure
+  /** null = transparent (no background rect); defaults to white like the canvas */
+  background?: string | null
+}
+
+export function drawToSvg(st: DrawState, opts: SvgOptions = {}): string {
+  const width = opts.width ?? st.viewport.width
+  const height = opts.height ?? st.viewport.height
+  const s = svgSurface(width, height, opts.measure)
+  paint(s, st, opts.background === undefined ? COLORS.background : opts.background)
+  return s.toSvg()
+}
+
+/** The single copy of the drawing logic, shared by every surface back end. */
+function paint(s: Surface, st: DrawState, background: string | null): void {
+  s.save()
+  if (background !== null) s.clear(background)
+
+  if (st.showGrid) drawGrid(s, st)
+  drawAxes(s, st)
 
   const visible = st.items.filter((i) => i.visible && i.value)
-  if (st.showSum && visible.length > 1) drawSumPolygon(ctx, st, visible)
+  if (st.showSum && visible.length > 1) drawSumPolygon(s, st, visible)
 
-  for (const item of visible) drawPhasor(ctx, st, item)
+  for (const item of visible) drawPhasor(s, st, item)
 
   if (st.selectedId !== undefined) {
     const sel = visible.find((i) => i.id === st.selectedId)
-    if (sel && sel.value) drawSelection(ctx, st, sel)
+    if (sel && sel.value) drawSelection(s, st, sel)
   }
-  ctx.restore()
+  s.restore()
 }
 
-function drawGrid(ctx: CanvasRenderingContext2D, st: DrawState): void {
+function drawGrid(s: Surface, st: DrawState): void {
   const g = gridLines(st.view, st.viewport)
-  ctx.save()
-  ctx.lineWidth = 1
+  s.save()
+  const gridColor = (major: boolean): string => (major ? COLORS.gridMajor : COLORS.grid)
   for (const line of g.vertical) {
-    ctx.strokeStyle = line.major ? COLORS.gridMajor : COLORS.grid
-    line1(ctx, Math.round(line.pos) + 0.5, 0, Math.round(line.pos) + 0.5, st.viewport.height)
+    const x = Math.round(line.pos) + 0.5
+    line1(s, gridColor(line.major), 1, x, 0, x, st.viewport.height)
   }
   for (const line of g.horizontal) {
-    ctx.strokeStyle = line.major ? COLORS.gridMajor : COLORS.grid
-    line1(ctx, 0, Math.round(line.pos) + 0.5, st.viewport.width, Math.round(line.pos) + 0.5)
+    const y = Math.round(line.pos) + 0.5
+    line1(s, gridColor(line.major), 1, 0, y, st.viewport.width, y)
   }
   // tick labels along the two axes
-  ctx.fillStyle = COLORS.tick
-  ctx.font = '11px ui-sans-serif, system-ui, sans-serif'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'top'
   const axisY = clamp(st.view.oy, 12, st.viewport.height - 18)
   for (const line of g.vertical) {
     if (line.major) continue
-    ctx.fillText(st.formatTick(line.value), line.pos, axisY + 3)
+    s.text(st.formatTick(line.value), line.pos, axisY + 3, {
+      size: 11,
+      color: COLORS.tick,
+      align: 'center',
+      baseline: 'top',
+    })
   }
-  ctx.textAlign = 'right'
-  ctx.textBaseline = 'middle'
   const axisX = clamp(st.view.ox, 26, st.viewport.width - 6)
   for (const line of g.horizontal) {
     if (line.major) continue
-    ctx.fillText(st.formatTick(line.value), axisX - 5, line.pos)
+    s.text(st.formatTick(line.value), axisX - 5, line.pos, {
+      size: 11,
+      color: COLORS.tick,
+      align: 'right',
+      baseline: 'middle',
+    })
   }
-  ctx.restore()
+  s.restore()
 }
 
-function drawAxes(ctx: CanvasRenderingContext2D, st: DrawState): void {
+function drawAxes(s: Surface, st: DrawState): void {
   const { view, viewport } = st
-  ctx.save()
-  ctx.strokeStyle = COLORS.axis
-  ctx.lineWidth = 1.25
+  s.save()
   const y = Math.round(clamp(view.oy, 0, viewport.height)) + 0.5
   const x = Math.round(clamp(view.ox, 0, viewport.width)) + 0.5
-  if (view.oy >= 0 && view.oy <= viewport.height) line1(ctx, 0, y, viewport.width, y)
-  if (view.ox >= 0 && view.ox <= viewport.width) line1(ctx, x, 0, x, viewport.height)
-  ctx.restore()
+  if (view.oy >= 0 && view.oy <= viewport.height) line1(s, COLORS.axis, 1.25, 0, y, viewport.width, y)
+  if (view.ox >= 0 && view.ox <= viewport.width) line1(s, COLORS.axis, 1.25, x, 0, x, viewport.height)
+  s.restore()
 }
 
-function drawPhasor(ctx: CanvasRenderingContext2D, st: DrawState, item: DrawItem): void {
+function drawPhasor(s: Surface, st: DrawState, item: DrawItem): void {
   const tip = worldToScreen(st.view, item.value as Cx)
   const origin = worldToScreen(st.view, { re: 0, im: 0 })
   const selected = item.id === st.selectedId
 
-  ctx.save()
-  ctx.strokeStyle = item.color
-  ctx.fillStyle = item.color
-  ctx.lineWidth = selected ? 3 : 2
-  ctx.lineCap = 'round'
+  s.save()
+  const width = selected ? 3 : 2
 
   const dx = tip.x - origin.x
   const dy = tip.y - origin.y
   const len = Math.hypot(dx, dy)
   if (len < 0.5) {
     // a phasor of zero is just a dot
-    ctx.beginPath()
-    ctx.arc(origin.x, origin.y, 3.5, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.restore()
+    s.beginPath()
+    s.arc(origin.x, origin.y, 3.5)
+    s.fill(item.color)
+    s.restore()
     return
   }
 
@@ -134,45 +174,41 @@ function drawPhasor(ctx: CanvasRenderingContext2D, st: DrawState, item: DrawItem
   const baseX = tip.x - ux * head
   const baseY = tip.y - uy * head
 
-  line1(ctx, origin.x, origin.y, baseX, baseY)
+  line1(s, item.color, width, origin.x, origin.y, baseX, baseY)
 
-  ctx.beginPath()
-  ctx.moveTo(tip.x, tip.y)
-  ctx.lineTo(baseX - uy * head * 0.34, baseY + ux * head * 0.34)
-  ctx.lineTo(baseX + uy * head * 0.34, baseY - ux * head * 0.34)
-  ctx.closePath()
-  ctx.fill()
+  s.beginPath()
+  s.moveTo(tip.x, tip.y)
+  s.lineTo(baseX - uy * head * 0.34, baseY + ux * head * 0.34)
+  s.lineTo(baseX + uy * head * 0.34, baseY - ux * head * 0.34)
+  s.closePath()
+  s.fill(item.color)
 
   if (selected) {
-    ctx.globalAlpha = 0.9
-    ctx.beginPath()
-    ctx.arc(tip.x, tip.y, 4.5, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.globalAlpha = 1
+    s.beginPath()
+    s.arc(tip.x, tip.y, 4.5, SELECTION_DOT_ALPHA)
+    s.fill(item.color)
   }
 
   if (st.showLabels) {
-    ctx.font = `${selected ? 'bold ' : ''}12px ui-sans-serif, system-ui, sans-serif`
-    ctx.textAlign = 'left'
-    ctx.textBaseline = 'middle'
     const pad = 7
     const anchorX = tip.x + ux * pad + 2
     const anchorY = tip.y - uy * pad - 2
-    const metrics = ctx.measureText(item.label)
-    const boxW = metrics.width + 6
+    const boxW = s.measure(item.label, 12, selected) + 6
     const boxH = 15
     const left = ux >= 0 ? anchorX : anchorX - boxW
-    ctx.globalAlpha = 0.82
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(left - 2, anchorY - boxH / 2, boxW, boxH)
-    ctx.globalAlpha = 1
-    ctx.fillStyle = item.color
-    ctx.fillText(item.label, left + 1, anchorY)
+    s.fillRect(left - 2, anchorY - boxH / 2, boxW, boxH, '#ffffff', LABEL_BACKDROP_ALPHA)
+    s.text(item.label, left + 1, anchorY, {
+      size: 12,
+      color: item.color,
+      align: 'left',
+      baseline: 'middle',
+      bold: selected,
+    })
   }
-  ctx.restore()
+  s.restore()
 }
 
-function drawSelection(ctx: CanvasRenderingContext2D, st: DrawState, item: DrawItem): void {
+function drawSelection(s: Surface, st: DrawState, item: DrawItem): void {
   const v = item.value as Cx
   const origin = worldToScreen(st.view, { re: 0, im: 0 })
   const tip = worldToScreen(st.view, v)
@@ -186,82 +222,62 @@ function drawSelection(ctx: CanvasRenderingContext2D, st: DrawState, item: DrawI
   const sweepTo = normalizedAngle(end) > Math.PI ? normalizedAngle(end) - Math.PI * 2 : normalizedAngle(end)
   const pts = arcPoints(origin, arcR, sweepFrom, sweepTo)
 
-  ctx.save()
-  ctx.strokeStyle = item.color
-  ctx.globalAlpha = 0.75
-  ctx.lineWidth = 1.5
-  ctx.setLineDash([4, 3])
-  ctx.beginPath()
-  pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)))
-  ctx.stroke()
-  ctx.setLineDash([])
+  s.save()
+  s.beginPath()
+  pts.forEach((p, i) => (i === 0 ? s.moveTo(p.x, p.y) : s.lineTo(p.x, p.y)))
+  s.stroke(item.color, 1.5, [4, 3], SELECTION_ARC_ALPHA)
 
   const text = st.angleLabel?.(item, st.degrees)
   if (text) {
     const mid = pts[Math.floor(pts.length / 2)] as { x: number; y: number }
     const outward = { x: (mid.x - origin.x) / arcR, y: (mid.y - origin.y) / arcR }
-    ctx.globalAlpha = 1
-    ctx.font = '11px ui-sans-serif, system-ui, sans-serif'
-    ctx.fillStyle = item.color
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
     const tx = mid.x + outward.x * 16
     const ty = mid.y + outward.y * 12
-    const w = ctx.measureText(text).width
-    ctx.globalAlpha = 0.85
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(tx - w / 2 - 3, ty - 8, w + 6, 16)
-    ctx.globalAlpha = 1
-    ctx.fillStyle = item.color
-    ctx.fillText(text, tx, ty)
+    const w = s.measure(text, 11, false)
+    s.fillRect(tx - w / 2 - 3, ty - 8, w + 6, 16, '#ffffff', ANGLE_LABEL_BACKDROP_ALPHA)
+    s.text(text, tx, ty, { size: 11, color: item.color, align: 'center', baseline: 'middle' })
   }
-  ctx.restore()
+  s.restore()
 }
 
-function drawSumPolygon(ctx: CanvasRenderingContext2D, st: DrawState, items: DrawItem[]): void {
-  ctx.save()
-  ctx.strokeStyle = COLORS.sum
-  ctx.fillStyle = COLORS.sum
-  ctx.lineWidth = 1.5
-  ctx.setLineDash([6, 4])
-  ctx.beginPath()
+function drawSumPolygon(s: Surface, st: DrawState, items: DrawItem[]): void {
+  s.save()
+  s.beginPath()
   let acc: Cx = { re: 0, im: 0 }
   const origin = worldToScreen(st.view, acc)
-  ctx.moveTo(origin.x, origin.y)
+  s.moveTo(origin.x, origin.y)
   for (const item of items) {
     const v = item.value as Cx
     acc = { re: acc.re + v.re, im: acc.im + v.im }
     const p = worldToScreen(st.view, acc)
-    ctx.lineTo(p.x, p.y)
+    s.lineTo(p.x, p.y)
   }
-  ctx.stroke()
-  ctx.setLineDash([])
+  s.stroke(COLORS.sum, 1.5, [6, 4])
 
   // the resultant
   const start = worldToScreen(st.view, { re: 0, im: 0 })
   const end = worldToScreen(st.view, acc)
-  ctx.lineWidth = 2.5
-  ctx.beginPath()
-  ctx.moveTo(start.x, start.y)
-  ctx.lineTo(end.x, end.y)
-  ctx.stroke()
+  line1(s, COLORS.sum, 2.5, start.x, start.y, end.x, end.y)
 
   if (st.showLabels && st.sumLabel) {
-    ctx.font = 'bold 12px ui-sans-serif, system-ui, sans-serif'
-    ctx.textAlign = 'left'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(st.sumLabel, end.x + 8, end.y - 8)
+    s.text(st.sumLabel, end.x + 8, end.y - 8, {
+      size: 12,
+      color: COLORS.sum,
+      align: 'left',
+      baseline: 'middle',
+      bold: true,
+    })
   }
-  ctx.restore()
+  s.restore()
 }
 
 // ------------------------------------------------------------------ helpers
 
-function line1(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number): void {
-  ctx.beginPath()
-  ctx.moveTo(x0, y0)
-  ctx.lineTo(x1, y1)
-  ctx.stroke()
+function line1(s: Surface, color: string, width: number, x0: number, y0: number, x1: number, y1: number): void {
+  s.beginPath()
+  s.moveTo(x0, y0)
+  s.lineTo(x1, y1)
+  s.stroke(color, width)
 }
 
 function clamp(v: number, lo: number, hi: number): number {

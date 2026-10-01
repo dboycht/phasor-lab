@@ -17,7 +17,7 @@ import {
   type View,
   type Viewport,
 } from './geometry'
-import { draw, type DrawItem } from './renderer'
+import { draw, type DrawItem, type DrawState } from './renderer'
 
 export interface PanelCallbacks {
   getItems: () => DrawItem[]
@@ -122,8 +122,16 @@ export class PhasorPanel {
   }
 
   render(): void {
+    draw(this.ctx, this.currentState())
+  }
+
+  /**
+   * The state the next render would use. Exports reuse it, so what is written
+   * to a file is what is on the screen - not a second, drifting description.
+   */
+  currentState(): DrawState {
     const items = this.cb.getItems()
-    draw(this.ctx, {
+    return {
       view: this.view,
       viewport: this.viewport,
       items: this.overridden(items),
@@ -135,11 +143,28 @@ export class PhasorPanel {
       angleLabel: this.cb.angleLabel,
       degrees: this.cb.isDegrees(),
       sumLabel: this.cb.sumLabel(),
-    })
+    }
   }
 
-  toPNG(): string {
-    return this.canvas.toDataURL('image/png')
+  /**
+   * PNG data URL. `scale` re-renders at a multiple of the canvas pixels
+   * (a 2x file for a report), `transparent` drops the white backing so the
+   * diagram can sit on a slide.
+   */
+  toPNG(opts: { scale?: number; transparent?: boolean } = {}): string {
+    const scale = Math.min(4, Math.max(1, opts.scale ?? 1))
+    const transparent = opts.transparent === true
+    if (scale === 1 && !transparent) return this.canvas.toDataURL('image/png')
+
+    const { width, height } = this.viewport
+    const out = document.createElement('canvas')
+    out.width = Math.max(1, Math.round(width * scale))
+    out.height = Math.max(1, Math.round(height * scale))
+    const ctx = out.getContext('2d')
+    if (!ctx) return this.canvas.toDataURL('image/png')
+    ctx.scale(scale, scale)
+    draw(ctx, this.currentState(), transparent ? null : undefined)
+    return out.toDataURL('image/png')
   }
 
   get scale(): number {

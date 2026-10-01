@@ -15,16 +15,29 @@ import type { MathfieldElement } from 'mathlive'
 
 import { LatexError } from './core/latex'
 import { solveEquations, type SolverResult } from './core/equations'
+import { csvToStatements, objectsToCsv } from './core/csv'
 import { EXAMPLES } from './core/examples'
 import { argumentOf, formatNumber, formatPolar, formatRect, magnitudeOf } from './core/format'
 import { objectLatex, PROJECT_VERSION, Session, type Project } from './core/session'
+import {
+  actionByInsert,
+  checkBinding,
+  comboFromEvent,
+  comboText,
+  defaultCombo,
+  isModifierCode,
+  resolveShortcuts,
+  shortcutIndex,
+  type BindingProblem,
+  type ResolvedShortcut,
+} from './core/shortcuts'
 import type { AngleUnit, Cx, PhasorConvention, PhasorObject, Settings } from './core/types'
 import { getLang, setLang, t, translateEvalError, type Lang, type StringKey } from './i18n'
 import { sumOf } from './plot/geometry'
 import { PhasorPanel } from './plot/panel'
-import type { DrawItem } from './plot/renderer'
+import { drawToSvg, type DrawItem } from './plot/renderer'
 import { renderCompareCard, renderObjectList, renderResultCard, type CompareSelection } from './ui/algebra'
-import { buildKeyboard, shortcutFor, shortcutText, SHORTCUTS, type KeyDef } from './ui/keyboard'
+import { buildKeyboard, type KeyDef } from './ui/keyboard'
 import { escapeHtml, renderLatex } from './ui/latexRender'
 
 // --------------------------------------------------------------- persistence
@@ -284,16 +297,31 @@ function showKeyHint(key: KeyDef | null): void {
     example.innerHTML = ` ${t('keyboard.example')} ${renderLatex(key.example)}`
     keyboardHint.append(example)
   }
-  const shortcut = shortcutFor(key)
-  if (shortcut) {
+  const shortcut = shortcutLookup().get(key.insert)
+  if (shortcut?.keyLabel) {
     const keys = document.createElement('kbd')
     keys.className = 'keyboard-hint-keys'
-    keys.textContent = shortcutText(shortcut)
+    keys.textContent = comboText(shortcut.effective)
     keyboardHint.append(keys)
   }
 }
 
-buildKeyboard(keyboardHost, insertKey, showKeyHint)
+/** Which insertion string answers to which shortcut right now. */
+function shortcutLookup(): Map<string, ResolvedShortcut> {
+  const byInsert = new Map<string, ResolvedShortcut>()
+  for (const shortcut of resolveShortcuts(session.settings.shortcuts)) {
+    if (!shortcut.enabled) continue
+    const action = actionByInsert(shortcut.insert)
+    if (action) byInsert.set(shortcut.insert, shortcut)
+  }
+  return byInsert
+}
+
+function rebuildKeyboard(): void {
+  buildKeyboard(keyboardHost, insertKey, showKeyHint, shortcutLookup())
+}
+
+rebuildKeyboard()
 
 // -------------------------------------------------------------------- helpers
 
@@ -546,6 +574,8 @@ function render(): void {
   statusEl.textContent = statusText()
   ;($('btn-undo') as HTMLButtonElement).disabled = !session.canUndo
   ;($('btn-redo') as HTMLButtonElement).disabled = !session.canRedo
+  // the export summary names the objects and follows the selection
+  updateExportSummary()
   panel.refit()
 }
 
@@ -577,6 +607,12 @@ function renderStaticText(): void {
   ]
   for (const key of keys) {
     const li = document.createElement('li')
+    if (key === 'help.shortcuts') {
+      // the combinations are settings, so the cheat sheet reads them live
+      li.innerHTML = `${escapeHtml(t(key))}: <code>${escapeHtml(currentShortcutSummary())}</code>`
+      list.append(li)
+      continue
+    }
     const [label, example] = t(key).split(/[:：]/)
     li.innerHTML = `${escapeHtml(label ?? '')}: <code>${escapeHtml(example ?? '')}</code>`
     list.append(li)
@@ -589,6 +625,16 @@ function renderStaticText(): void {
   $('btn-solve').textContent = t('equation.solve')
   equationHint.textContent = t('equation.hint')
   previewEquation()
+}
+
+/** The shortcut line of the cheat sheet, with the user's bindings applied. */
+function currentShortcutSummary(): string {
+  return resolveShortcuts(session.settings.shortcuts)
+    .map((shortcut) => {
+      const name = t(`shortcut.${shortcut.id}` as StringKey)
+      return `${name} ${shortcut.enabled ? comboText(shortcut.effective) : t('settings.shortcutOff')}`
+    })
+    .join(' · ')
 }
 
 /** The About dialog: name, version, where the code lives, what it is built on. */
@@ -876,12 +922,9 @@ function buildGraphicsTools(): void {
   png.type = 'button'
   png.className = 'btn ghost'
   png.textContent = t('tool.png')
-  png.addEventListener('click', () => {
-    const a = document.createElement('a')
-    a.href = panel.toPNG()
-    a.download = 'phasor-diagram.png'
-    a.click()
-  })
+  png.title = t('settings.exportPng')
+  // one click keeps working as before; the settings dialog offers SVG and size
+  png.addEventListener('click', () => exportPng())
 
   graphicsTools.append(fit, zoomIn, zoomOut, grid, labels, snap, sum, png)
 }
@@ -891,8 +934,402 @@ function rebuildUI(): void {
   buildTopbar()
   buildGraphicsTools()
   buildExamples()
-  buildKeyboard(keyboardHost, insertKey, showKeyHint)
+  rebuildKeyboard()
+  renderSettings()
   render()
+}
+
+// ------------------------------------------------------------------ settings
+
+/** The action whose new combination the dialog is waiting for, if any. */
+let shortcutCapture: string | undefined
+/** The last refusal, shown under the offending row. */
+let shortcutProblem: { id: string; problem: BindingProblem; other?: string } | undefined
+
+type ExportScope = 'all' | 'selected'
+
+/** Measure SVG text with the real font metrics when a canvas is available. */
+const measureCanvas = document.createElement('canvas').getContext('2d')
+
+function measureText(text: string, size: number, bold: boolean): number {
+  if (!measureCanvas) return 0.6 * size * text.length
+  measureCanvas.font = `${bold ? 'bold ' : ''}${size}px ui-sans-serif, system-ui, sans-serif`
+  return measureCanvas.measureText(text).width
+}
+
+function download(text: string, fileName: string, type: string): void {
+  const blob = new Blob([text], { type })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function stamp(): string {
+  const d = new Date()
+  const p = (n: number): string => String(n).padStart(2, '0')
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`
+}
+
+function exportScope(): ExportScope {
+  const checked = document.querySelector<HTMLInputElement>('input[name="export-scope"]:checked')
+  return checked?.value === 'selected' ? 'selected' : 'all'
+}
+
+/** The objects an export would write, given the chosen scope. */
+function scopeObjects(scope: ExportScope = exportScope()): PhasorObject[] {
+  if (scope === 'all') return session.objects
+  const id = selectedId ?? session.objects[0]?.id
+  const selected = id !== undefined ? session.byId(id) : undefined
+  return selected ? [selected] : []
+}
+
+function scopeFileName(extension: string, prefix: string, objects: PhasorObject[], suffix = ''): string {
+  const only = objects.length === 1 && objects[0] ? `-${objects[0].name.replace(/_/g, '')}` : ''
+  return `${prefix}${only}-${stamp()}${suffix}.${extension}`
+}
+
+function problemText(problem: { problem: BindingProblem; other?: string }): string {
+  switch (problem.problem) {
+    case 'duplicate':
+      return t('settings.shortcutTaken', { other: t(`shortcut.${problem.other}` as StringKey) })
+    case 'needs-modifier':
+      return t('settings.shortcutNeedsModifier')
+    case 'reserved':
+      return t('settings.shortcutReserved')
+    default:
+      return t('settings.shortcutNotAKey')
+  }
+}
+
+function smallButton(label: string, onClick: () => void): HTMLButtonElement {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'btn'
+  button.textContent = label
+  button.addEventListener('click', onClick)
+  return button
+}
+
+function renderShortcutTable(): void {
+  const host = $('shortcut-table')
+  host.replaceChildren()
+  const bindings = session.settings.shortcuts ?? {}
+  for (const shortcut of resolveShortcuts(session.settings.shortcuts)) {
+    const custom = Object.prototype.hasOwnProperty.call(bindings, shortcut.id)
+    const capturing = shortcutCapture === shortcut.id
+
+    const row = document.createElement('div')
+    row.className = 'shortcut-row'
+    row.dataset.action = shortcut.id
+    if (!shortcut.enabled) row.classList.add('is-off')
+    if (custom && shortcut.enabled) row.classList.add('is-custom')
+    if (capturing) row.classList.add('is-capturing')
+
+    const name = document.createElement('div')
+    name.className = 'shortcut-name'
+    const badge = document.createElement('span')
+    badge.className = 'shortcut-badge'
+    badge.textContent = shortcut.keyLabel ?? '\u2014'
+    const label = document.createElement('span')
+    label.textContent = t(`shortcut.${shortcut.id}` as StringKey)
+    name.append(badge, label)
+
+    const combo = document.createElement('span')
+    combo.className = 'shortcut-combo'
+    if (capturing) combo.textContent = t('settings.pressKeys')
+    else if (!shortcut.enabled) combo.textContent = t('settings.shortcutOff')
+    else combo.textContent = comboText(shortcut.effective)
+
+    const rebind = smallButton(t('settings.rebind'), () => {
+      shortcutCapture = shortcut.id
+      shortcutProblem = undefined
+      renderShortcutTable()
+    })
+    const toggle = smallButton(shortcut.enabled ? t('settings.turnOff') : t('settings.turnOn'), () => {
+      applyBinding(shortcut.id, shortcut.enabled ? null : (defaultCombo(shortcut.id) ?? null))
+    })
+    const reset = smallButton(t('settings.resetOne'), () => applyBinding(shortcut.id, defaultCombo(shortcut.id) ?? null))
+    reset.disabled = !custom
+
+    row.append(name, combo, rebind, toggle, reset)
+    if (shortcutProblem?.id === shortcut.id) {
+      const problem = document.createElement('div')
+      problem.className = 'shortcut-problem'
+      problem.textContent = problemText(shortcutProblem)
+      row.append(problem)
+    }
+    host.append(row)
+  }
+}
+
+function updateExportSummary(): void {
+  const host = $('settings-summary')
+  const objects = scopeObjects()
+  const nothing = session.objects.length === 0
+  if (nothing) host.textContent = t('settings.summaryEmpty')
+  else if (objects.length === 0) host.textContent = t('settings.summaryNoneSelected')
+  else {
+    const names = objects.map((o) => o.name).slice(0, 8).join(', ')
+    const detail = objects.length > 8 ? `${names}, …` : names
+    host.textContent = t('settings.summary', { count: objects.length, detail })
+  }
+  const disabled = objects.length === 0
+  for (const id of ['settings-export-project', 'settings-export-csv']) {
+    $<HTMLButtonElement>(id).disabled = disabled
+  }
+}
+
+function renderSettings(): void {
+  $('settings-title').textContent = t('settings.title')
+  $('btn-settings').title = t('settings.title')
+  $('settings-shortcuts').textContent = t('settings.shortcuts')
+  $('settings-shortcuts-hint').textContent = t('settings.shortcutsHint')
+  $('shortcuts-reset').textContent = t('settings.resetAll')
+  $('settings-io').textContent = t('settings.io')
+  $('settings-scope-title').textContent = t('settings.scopeTitle')
+  $('settings-scope-all').textContent = t('settings.scopeAll', { count: session.objects.length })
+  $('settings-scope-selected').textContent = t('settings.scopeSelected')
+  $('settings-project').textContent = t('settings.project')
+  $('settings-export-project').textContent = t('settings.exportProject')
+  $('settings-import-project').textContent = t('settings.importProject')
+  $('settings-project-hint').textContent = t('settings.projectHint')
+  $('settings-csv').textContent = t('settings.csv')
+  $('settings-export-csv').textContent = t('settings.exportCsv')
+  $('settings-import-csv').textContent = t('settings.importCsv')
+  $('settings-csv-hint').textContent = t('settings.csvHint')
+  $('settings-image').textContent = t('settings.image')
+  $('settings-scale').textContent = t('settings.scale')
+  $('settings-transparent-label').textContent = t('settings.transparent')
+  $('settings-export-png').textContent = t('settings.exportPng')
+  $('settings-export-svg').textContent = t('settings.exportSvg')
+  const viewport = panel.currentState().viewport
+  $('settings-image-hint').textContent = t('settings.imageHint', {
+    width: Math.round(viewport.width),
+    height: Math.round(viewport.height),
+  })
+  renderShortcutTable()
+  updateExportSummary()
+}
+
+/** Write one binding (or `null` to switch the action off) and keep the UI in step. */
+function applyBinding(actionId: string, combo: string | null): void {
+  const bindings = { ...(session.settings.shortcuts ?? {}) }
+  const fallback = defaultCombo(actionId)
+  if (combo === null) bindings[actionId] = null
+  else if (fallback !== undefined && combo === fallback) delete bindings[actionId]
+  else bindings[actionId] = combo
+  session.updateSettings({ shortcuts: bindings })
+  shortcutCapture = undefined
+  shortcutProblem = undefined
+  persist()
+  rebuildKeyboard()
+  renderSettings()
+  setStatus('status.ready')
+}
+
+/**
+ * Capture phase on the window: while a row is waiting for its combination the
+ * mathfields must not see the keystroke, and Escape cancels.
+ */
+window.addEventListener('keydown', (ev) => {
+  if (!shortcutCapture) return
+  ev.preventDefault()
+  ev.stopPropagation()
+  if (ev.key === 'Escape') {
+    shortcutCapture = undefined
+    shortcutProblem = undefined
+    renderShortcutTable()
+    return
+  }
+  if (isModifierCode(ev.code)) return
+  const actionId = shortcutCapture
+  const combo = comboFromEvent(ev)
+  const verdict = checkBinding(combo, actionId, session.settings.shortcuts)
+  if (!verdict.ok) {
+    shortcutProblem = { id: actionId, problem: verdict.problem as BindingProblem, other: verdict.other }
+    renderShortcutTable()
+    return
+  }
+  applyBinding(actionId, combo)
+}, true)
+
+// ------------------------------------------------------------ import / export
+
+async function importCsvText(text: string): Promise<void> {
+  const { rows } = csvToStatements(text, session.settings.angleUnit)
+  const good = rows.filter((row) => row.ok)
+  const bad = rows.length - good.length
+  if (good.length === 0) {
+    showInputError(
+      t('settings.importFailed', { detail: bad > 0 ? `${bad} × ${t('settings.shortcutNotAKey')}` : text.slice(0, 40) }),
+    )
+    return
+  }
+  const result = session.submit(good.map((row) => row.latex).join(';'))
+  if (!result.ok) {
+    showInputError(describeError(result.error, good.map((row) => row.latex).join(';')))
+    return
+  }
+  showInputError(undefined)
+  selectedId = session.objects[0]?.id
+  const detail = bad > 0 ? `${good.length} · ${t('settings.importSkipped', { count: bad })}` : `${good.length}`
+  setStatus('status.ok', t('settings.imported', { count: detail }))
+  persist()
+  render()
+}
+
+/** A project dropped on the window (or picked in the settings dialog). */
+function importProject(project: Project): void {
+  const failure = session.loadProject(project)
+  if (failure) {
+    showInputError(t('input.loadFailed', { detail: failure.detail }))
+    return
+  }
+  equationInput.value = project.equation ?? ''
+  selectedId = session.objects[0]?.id
+  showInputError(undefined)
+  persist()
+  rebuildUI()
+  setStatus('status.ok', t('settings.imported', { count: session.objects.length }))
+}
+
+/**
+ * The project as it would be written, honouring the export scope. The scope is
+ * applied by index: a `ProjectObject` carries no name (the name lives in its
+ * LaTeX), so filtering by index is the one mapping that cannot drift.
+ */
+function projectWithScope(scope: ExportScope): Project {
+  const project = session.toProject()
+  project.equation = equationInput.value
+  if (scope === 'selected') {
+    const id = selectedId ?? session.objects[0]?.id
+    const index = session.objects.findIndex((o) => o.id === id)
+    project.objects = index >= 0 ? project.objects.slice(index, index + 1) : []
+  }
+  return project
+}
+
+function exportProject(scope: ExportScope): void {
+  const objects = scopeObjects(scope)
+  const file = scopeFileName('json', 'phasor-lab', objects)
+  download(JSON.stringify(projectWithScope(scope), null, 2), file, 'application/json')
+  setStatus('status.ok', t('settings.exported', { name: file }))
+}
+
+function exportCsv(scope: ExportScope): void {
+  const objects = scopeObjects(scope)
+  const text = objectsToCsv(objects, {
+    angleUnit: session.settings.angleUnit,
+    convention: session.settings.convention,
+  })
+  const file = scopeFileName('csv', 'phasor-lab', objects)
+  // the BOM is what makes Excel open a UTF-8 file by double-click
+  download(`\ufeff${text}`, file, 'text/csv;charset=utf-8')
+  setStatus('status.ok', t('settings.exported', { name: file }))
+}
+
+function exportPng(): void {
+  const scale = Number($<HTMLSelectElement>('settings-scale-select').value) || 1
+  const transparent = $<HTMLInputElement>('settings-transparent').checked
+  const file = scopeFileName('png', 'phasor-diagram', scopeObjects(), scale > 1 ? `@${scale}x` : '')
+  const a = document.createElement('a')
+  a.href = panel.toPNG({ scale, transparent })
+  a.download = file
+  a.click()
+  setStatus('status.ok', t('settings.exported', { name: file }))
+}
+
+function exportSvg(): void {
+  const transparent = $<HTMLInputElement>('settings-transparent').checked
+  const svg = drawToSvg(panel.currentState(), {
+    background: transparent ? null : '#ffffff',
+    measure: measureText,
+  })
+  const file = scopeFileName('svg', 'phasor-diagram', scopeObjects())
+  download(svg, file, 'image/svg+xml;charset=utf-8')
+  setStatus('status.ok', t('settings.exported', { name: file }))
+}
+
+type FileKind = 'project' | 'csv' | 'unknown'
+
+function fileKind(file: File): FileKind {
+  const name = file.name.toLowerCase()
+  if (name.endsWith('.json')) return 'project'
+  if (name.endsWith('.csv') || name.endsWith('.txt')) return 'csv'
+  return 'unknown'
+}
+
+function firstDroppedFile(ev: DragEvent): File | undefined {
+  return ev.dataTransfer?.files?.[0]
+}
+
+function hasFiles(ev: DragEvent): boolean {
+  return Array.from(ev.dataTransfer?.types ?? []).includes('Files')
+}
+
+/** One drag can cross several elements, so the overlay counts enter/leave pairs. */
+let dragDepth = 0
+
+function showDropOverlay(file: File | undefined): void {
+  const kind = file ? fileKind(file) : 'unknown'
+  $('drop-title').textContent =
+    file && kind !== 'unknown' ? t('settings.drop', { name: file.name }) : t('settings.dropUnknown')
+  $('drop-hint').textContent = t('settings.dropHint')
+  $('drop-overlay').hidden = false
+}
+
+function hideDropOverlay(): void {
+  dragDepth = 0
+  $('drop-overlay').hidden = true
+}
+
+window.addEventListener('dragenter', (ev) => {
+  if (!hasFiles(ev)) return
+  ev.preventDefault()
+  dragDepth++
+  showDropOverlay(firstDroppedFile(ev))
+})
+
+window.addEventListener('dragover', (ev) => {
+  if (!hasFiles(ev)) return
+  // without this the browser navigates to the dropped file
+  ev.preventDefault()
+  if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy'
+})
+
+window.addEventListener('dragleave', (ev) => {
+  if (!hasFiles(ev)) return
+  dragDepth = Math.max(0, dragDepth - 1)
+  if (dragDepth === 0) $('drop-overlay').hidden = true
+})
+
+window.addEventListener('drop', (ev) => {
+  if (!hasFiles(ev)) return
+  ev.preventDefault()
+  const file = firstDroppedFile(ev)
+  hideDropOverlay()
+  if (file) void importDroppedFile(file)
+})
+
+async function importDroppedFile(file: File): Promise<void> {
+  try {
+    const kind = fileKind(file)
+    if (kind === 'project') {
+      importProject(JSON.parse(await file.text()) as Project)
+      return
+    }
+    if (kind === 'csv') {
+      await importCsvText(await file.text())
+      return
+    }
+    showInputError(t('settings.dropUnknown'))
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error)
+    showInputError(t('settings.importFailed', { detail }))
+  }
 }
 
 // --------------------------------------------------------------------- wiring
@@ -935,49 +1372,73 @@ window.addEventListener('keydown', (e) => {
 
 // ------------------------------------------------------------ project files
 
-function projectFileName(): string {
-  const d = new Date()
-  const p = (n: number): string => String(n).padStart(2, '0')
-  return `phasor-lab-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.json`
-}
-
-$('btn-export').addEventListener('click', () => {
-  const project = session.toProject()
-  project.equation = equationInput.value
-  const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = projectFileName()
-  a.click()
-  URL.revokeObjectURL(url)
-})
+$('btn-export').addEventListener('click', () => exportProject('all'))
 
 const fileInput = $<HTMLInputElement>('file-input')
+const csvInput = $<HTMLInputElement>('csv-input')
 
 $('btn-import').addEventListener('click', () => fileInput.click())
 
 fileInput.addEventListener('change', () => {
   const file = fileInput.files?.[0]
+  fileInput.value = ''
   if (!file) return
   void (async () => {
     try {
-      const project = JSON.parse(await file.text()) as Project
-      const failure = session.loadProject(project)
-      if (failure) {
-        showInputError(t('input.loadFailed', { detail: failure.detail }))
-      } else {
-        equationInput.value = project.equation ?? ''
-        selectedId = session.objects[0]?.id
-        showInputError(undefined)
-        persist()
-        rebuildUI()
-        flashStatus('input.loaded')
-      }
+      importProject(JSON.parse(await file.text()) as Project)
     } catch (e) {
       showInputError(t('input.loadFailed', { detail: e instanceof Error ? e.message : String(e) }))
-    } finally {
-      fileInput.value = ''
+    }
+  })()
+})
+
+// ------------------------------------------------------------------ settings
+
+const settingsDialog = $<HTMLDialogElement>('settings-dialog')
+
+$('btn-settings').addEventListener('click', () => {
+  shortcutCapture = undefined
+  shortcutProblem = undefined
+  renderSettings()
+  settingsDialog.showModal()
+})
+$('settings-close').addEventListener('click', () => settingsDialog.close())
+settingsDialog.addEventListener('close', () => {
+  shortcutCapture = undefined
+  shortcutProblem = undefined
+})
+
+// back to the table defaults: an empty bindings record means "nothing overridden"
+$('shortcuts-reset').addEventListener('click', () => {
+  session.updateSettings({ shortcuts: {} })
+  shortcutCapture = undefined
+  shortcutProblem = undefined
+  persist()
+  rebuildKeyboard()
+  renderSettings()
+  setStatus('status.ready')
+})
+
+$('settings-export-project').addEventListener('click', () => exportProject(exportScope()))
+$('settings-import-project').addEventListener('click', () => fileInput.click())
+$('settings-export-csv').addEventListener('click', () => exportCsv(exportScope()))
+$('settings-import-csv').addEventListener('click', () => csvInput.click())
+$('settings-export-png').addEventListener('click', () => exportPng())
+$('settings-export-svg').addEventListener('click', () => exportSvg())
+
+for (const radio of document.querySelectorAll<HTMLInputElement>('input[name="export-scope"]')) {
+  radio.addEventListener('change', () => updateExportSummary())
+}
+
+csvInput.addEventListener('change', () => {
+  const file = csvInput.files?.[0]
+  csvInput.value = ''
+  if (!file) return
+  void (async () => {
+    try {
+      await importCsvText(await file.text())
+    } catch (e) {
+      showInputError(t('settings.importFailed', { detail: e instanceof Error ? e.message : String(e) }))
     }
   })()
 })
@@ -1022,14 +1483,14 @@ window.addEventListener('resize', () => panel.resize())
 // ---------------------------------------------------------------- shortcuts
 
 /**
- * Ctrl+Alt+letter inserts a symbol into whichever field was last focused.
- * Capture phase, so the mathfield never sees the key as text.
+ * A configured combination inserts its symbol into whichever field was last
+ * focused. Capture phase, so the mathfield never sees the keystroke as text.
+ * While the settings dialog is capturing a new combination, this stays out of
+ * the way (see `shortcutCapture`).
  */
-const SHORTCUT_BY_CODE = new Map(SHORTCUTS.map((s) => [s.code, s]))
-
 window.addEventListener('keydown', (ev) => {
-  if (!ev.ctrlKey || !ev.altKey || ev.shiftKey || ev.metaKey) return
-  const shortcut = SHORTCUT_BY_CODE.get(ev.code)
+  if (shortcutCapture) return
+  const shortcut = shortcutIndex(session.settings.shortcuts).get(comboFromEvent(ev))
   if (!shortcut) return
   ev.preventDefault()
   insertKey({ label: shortcut.label, insert: shortcut.insert, autoExit: shortcut.autoExit })
@@ -1066,6 +1527,15 @@ declare global {
       /** input history, for automated checks */
       history: () => { items: string[]; index: number }
       version: string
+      /** the import/export paths, so a check can read what a download would hold */
+      projectJson: (scope: ExportScope) => string
+      exportCsvText: (scope: ExportScope) => string
+      importCsv: (text: string) => Promise<void>
+      importProjectJson: (text: string) => void
+      exportSvgText: (transparent?: boolean) => string
+      exportPngDataUrl: (opts: { scale?: number; transparent?: boolean }) => string
+      /** the combinations the key handler would answer to right now */
+      shortcutCombos: () => string[]
     }
   }
 }
@@ -1083,4 +1553,16 @@ window.__PHASOR_LAB__ = {
   objectLatex,
   history: () => ({ items: [...inputHistory], index: historyIndex }),
   version: __APP_VERSION__,
+  projectJson: (scope) => JSON.stringify(projectWithScope(scope), null, 2),
+  exportCsvText: (scope) =>
+    objectsToCsv(scopeObjects(scope), {
+      angleUnit: session.settings.angleUnit,
+      convention: session.settings.convention,
+    }),
+  importCsv: importCsvText,
+  importProjectJson: (text) => importProject(JSON.parse(text) as Project),
+  exportSvgText: (transparent) =>
+    drawToSvg(panel.currentState(), { background: transparent ? null : '#ffffff', measure: measureText }),
+  exportPngDataUrl: (opts) => panel.toPNG(opts),
+  shortcutCombos: () => [...shortcutIndex(session.settings.shortcuts).keys()],
 }
