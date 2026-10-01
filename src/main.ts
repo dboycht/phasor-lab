@@ -10,6 +10,7 @@ import './styles.css'
 import type { MathfieldElement } from 'mathlive'
 
 import { LatexError } from './core/latex'
+import { solveEquations, type SolverResult } from './core/equations'
 import { EXAMPLES } from './core/examples'
 import { argumentOf, formatNumber, formatPolar, formatRect, magnitudeOf } from './core/format'
 import { objectLatex, PROJECT_VERSION, Session, type Project } from './core/session'
@@ -60,7 +61,9 @@ function loadStoredProject(): Project | undefined {
 
 function saveProject(): void {
   try {
-    localStorage.setItem(PROJECT_KEY, JSON.stringify(session.toProject()))
+    const project = session.toProject()
+    project.equation = equationInput.value
+    localStorage.setItem(PROJECT_KEY, JSON.stringify(project))
   } catch { /* storage full or unavailable: the app still works */ }
 }
 
@@ -119,6 +122,11 @@ function statusText(): string {
 let compareSelection: CompareSelection = {}
 
 const input = $<MathfieldElement>('input')
+const equationInput = $<MathfieldElement>('equation-input')
+const equationResult = $('equation-result')
+const equationHint = $<HTMLParagraphElement>('equation-hint')
+/** which mathfield the symbol keyboard inserts into */
+let keyTarget: MathfieldElement = input
 const inputError = $<HTMLParagraphElement>('input-error')
 const objectList = $('object-list')
 const resultCard = $('result-card')
@@ -141,6 +149,24 @@ input.mathVirtualKeyboardPolicy = 'manual'
 input.smartMode = true
 input.smartFence = true
 input.defaultMode = 'math'
+
+// the equation card has its own field, with the same input conventions
+equationInput.mathVirtualKeyboardPolicy = 'manual'
+equationInput.smartMode = true
+equationInput.smartFence = true
+equationInput.defaultMode = 'math'
+equationInput.placeholder = '2x+6=0'
+
+equationInput.addEventListener('keydown', (ev: KeyboardEvent) => {
+  if (ev.key === 'Enter' && !ev.shiftKey) {
+    ev.preventDefault()
+    solveNow()
+  }
+})
+
+// the symbol keyboard types into whichever field was focused last
+input.addEventListener('focus', () => { keyTarget = input })
+equationInput.addEventListener('focus', () => { keyTarget = equationInput })
 
 input.addEventListener('keydown', (ev: KeyboardEvent) => {
   if (ev.key === 'Enter' && !ev.shiftKey) {
@@ -202,8 +228,8 @@ function applyToInput(latex: string): void {
 }
 
 function insertKey(key: KeyDef): void {
-  input.insert(key.insert)
-  input.focus()
+  keyTarget.insert(key.insert)
+  keyTarget.focus()
   if (key.autoExit) subscriptOpen = true
 }
 
@@ -216,16 +242,19 @@ function insertKey(key: KeyDef): void {
 let subscriptOpen = false
 
 /** Capture phase: it must run before MathLive inserts the character itself. */
-input.addEventListener('keydown', (ev: KeyboardEvent) => {
+const escapeSubscript = (ev: KeyboardEvent): void => {
   if (!subscriptOpen) return
   if (!/^[=+\-*/),;]$/.test(ev.key)) return
   subscriptOpen = false
+  const field = ev.currentTarget as MathfieldElement
   try {
-    input.executeCommand('moveAfterParent')
+    field.executeCommand('moveAfterParent')
   } catch {
     /* older MathLive: the user can press ArrowRight themselves */
   }
-}, true)
+}
+input.addEventListener('keydown', escapeSubscript, true)
+equationInput.addEventListener('keydown', escapeSubscript, true)
 
 /**
  * The hint strip under the keyboard: what the key does, and a worked example.
@@ -543,6 +572,12 @@ function renderStaticText(): void {
   }
 
   renderAbout()
+
+  // the equation card
+  $('equation-title').textContent = t('equation.title')
+  $('btn-solve').textContent = t('equation.solve')
+  equationHint.textContent = t('equation.hint')
+  previewEquation()
 }
 
 /** The About dialog: name, version, where the code lives, what it is built on. */
@@ -578,6 +613,114 @@ function renderAbout(): void {
   body.append(row(t('about.license'), 'MIT'))
   body.append(para(t('about.engine'), 'about-credit'))
   body.append(para(t('about.storage'), 'about-credit'))
+}
+
+// ---------------------------------------------------------------- equations
+
+/** Full precision on purpose: 1/3 must survive as a value, not as 0.333333. */
+function valueToLatex(v: Cx): string {
+  const imTiny = Math.abs(v.im) <= 1e-12 * Math.max(1, Math.abs(v.re))
+  if (imTiny) return String(v.re)
+  return `${v.re}${v.im < 0 ? '-' : '+'}${Math.abs(v.im)}j`
+}
+
+function renderEquationResult(result: SolverResult): void {
+  equationResult.replaceChildren()
+
+  if (!result.ok) {
+    const problem = document.createElement('p')
+    problem.className = 'equation-problem'
+    problem.textContent = t(`eq.problem.${result.problem}` as StringKey)
+      .split('{detail}')
+      .join(result.detail ?? '')
+    equationResult.append(problem)
+    return
+  }
+
+  const { names, exact, decimals, checks } = result.solution
+  const answers = document.createElement('ul')
+  answers.className = 'equation-answers'
+  names.forEach((name, i) => {
+    const li = document.createElement('li')
+    const label = document.createElement('code')
+    label.textContent = `${name} = ${decimals[i]}`
+    li.append(label)
+    const exactText = exact[i]
+    if (exactText !== undefined && exactText !== decimals[i]) {
+      const span = document.createElement('span')
+      span.className = 'equation-exact'
+      span.textContent = `${t('equation.exact')}: ${exactText}`
+      li.append(span)
+    }
+    answers.append(li)
+  })
+  equationResult.append(answers)
+
+  const verify = document.createElement('div')
+  verify.className = 'equation-checks'
+  const heading = document.createElement('div')
+  heading.className = 'equation-checks-title'
+  heading.textContent = t('equation.check')
+  verify.append(heading)
+  for (const check of checks) {
+    const row = document.createElement('div')
+    row.className = 'equation-check'
+    const source = document.createElement('code')
+    source.textContent = check.source
+    const substituted = document.createElement('span')
+    substituted.textContent = ` → ${check.left} = ${check.right}`
+    const mark = document.createElement('span')
+    mark.className = 'equation-ok'
+    mark.textContent = ` ✓ ${t('equation.residual')} ${formatNumber(check.residual, 2)}`
+    row.append(source, substituted, mark)
+    verify.append(row)
+  }
+  equationResult.append(verify)
+}
+
+function runSolver(): SolverResult {
+  return solveEquations({
+    latex: equationInput.value.trim(),
+    angleUnit: session.settings.angleUnit,
+    math: session.math,
+    scope: session.valueScope(),
+    precision: session.settings.precision,
+  })
+}
+
+/** Show what the current equation solves to, without touching the objects. */
+function previewEquation(): void {
+  if (equationInput.value.trim() === '') {
+    equationResult.replaceChildren()
+    return
+  }
+  renderEquationResult(runSolver())
+}
+
+/** Solve, show the answer, and keep every unknown as an object (one undo step). */
+function solveNow(): void {
+  const result = runSolver()
+  renderEquationResult(result)
+  if (!result.ok) {
+    // no render() on this path, so refresh the line explicitly: otherwise it
+    // keeps saying "solved x" from the previous, successful run
+    setStatus('status.ready')
+    statusEl.textContent = statusText()
+    return
+  }
+  const assignments = result.solution.names
+    .map((name, i) => `${name}=${valueToLatex(result.solution.values[i]!)}`)
+    .join(';')
+  const stored = session.submit(assignments)
+  if (!stored.ok) {
+    showInputError(describeError(stored.error, assignments))
+    return
+  }
+  showInputError(undefined)
+  selectedId = session.objects[0]?.id
+  setStatus('status.ok', t('equation.solved', { names: result.solution.names.join(', ') }))
+  persist()
+  render()
 }
 
 // ------------------------------------------------------------------- topbar UI
@@ -765,6 +908,11 @@ $('btn-help').addEventListener('click', () => helpDialog.showModal())
 $('help-close').addEventListener('click', () => helpDialog.close())
 $('btn-about').addEventListener('click', () => aboutDialog.showModal())
 $('about-close').addEventListener('click', () => aboutDialog.close())
+$('btn-solve').addEventListener('click', () => solveNow())
+equationInput.addEventListener('input', () => {
+  // keep the preview in step while typing, and remember the text
+  previewEquation()
+})
 
 // Ctrl+Z / Ctrl+Shift+Z (and Ctrl+Y) work anywhere on the page
 window.addEventListener('keydown', (e) => {
@@ -783,7 +931,9 @@ function projectFileName(): string {
 }
 
 $('btn-export').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify(session.toProject(), null, 2)], { type: 'application/json' })
+  const project = session.toProject()
+  project.equation = equationInput.value
+  const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -806,6 +956,7 @@ fileInput.addEventListener('change', () => {
       if (failure) {
         showInputError(t('input.loadFailed', { detail: failure.detail }))
       } else {
+        equationInput.value = project.equation ?? ''
         selectedId = session.objects[0]?.id
         showInputError(undefined)
         persist()
@@ -866,6 +1017,7 @@ const stored = loadStoredProject()
 if (stored && session.loadProject(stored) === undefined) {
   session.forgetHistory()
   selectedId = session.objects[0]?.id
+  equationInput.value = stored.equation ?? ''
   setStatus('input.restored')
 }
 

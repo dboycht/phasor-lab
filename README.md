@@ -45,6 +45,7 @@ Ordinary calculators cannot even type phasor notation; this one is built around 
 | Phasor convention | RMS (default) or amplitude, with an explicit *convert all* action |
 | Bilingual UI | 中文 / English, switchable at runtime |
 | About dialog | the `ⓘ` button shows the version, the repository and what the app is built on |
+| Linear equations | an equation card solves `2x+6=0` or a system `3x+4y=10; x-y=1` (up to three unknowns, complex coefficients), shows the decimal **and** the exact fraction, substitutes the answer back, and stores every unknown as a phasor you can draw |
 | Engine | [mathjs](https://mathjs.org) for evaluation, [MathLive](https://mathlive.io) for input |
 
 ### Drag to edit
@@ -65,6 +66,30 @@ both laws:
   closes on `U = 60 + 40j = 72.11∠33.69°`.
 - **KCL** — at a node the currents sum to zero, so hide everything except the
   branch currents and the resultant should land on the origin.
+
+### Solving equations
+
+The **Equations** card at the bottom of the algebra view solves first-degree
+equations, with a system separated by semicolons:
+
+| What you type | What you get |
+| --- | --- |
+| `2x+6=0` | `x = -3` |
+| `3x=1` | `x = 0.333333`, exact `1/3` |
+| `3x+4y=10; x-y=1` | `x = 2`, `y = 1` |
+| `(3+4j)I1+2I2=10; 2I1+(5-j)I2=0` | a complex pair — mesh analysis, in one line |
+| `Z*I=U` (with `Z` and `U` already defined) | `I = U/Z` |
+
+Up to three unknowns. The answer is shown as a decimal and, when it is a simple
+ratio, as an exact fraction; every equation is then **substituted back** with its
+residual, and each unknown is stored as a phasor object — so it appears in the
+algebra view, can be dragged in the diagram, and can be used by later
+expressions.
+
+It refuses to guess: a quadratic (`x^2=4`), a product of unknowns (`xy=6`), a
+contradictory system (`x+y=1; x+y=2`), a system that is not independent, or more
+than three unknowns all produce a sentence explaining what is wrong instead of an
+answer.
 
 ## Quick start
 
@@ -164,7 +189,7 @@ symbols.
 
 ## Verification
 
-`npm test` runs 227 unit tests: the LaTeX converter, the whole documented syntax
+`npm test` runs 253 unit tests: the LaTeX converter, the whole documented syntax
 table (four input forms, the angle model, naming, unit labels, the convention
 factor and twelve rejected inputs), the session model including undo/redo,
 auto-naming and project round-trips, the diagram geometry, the two-phasor
@@ -176,7 +201,7 @@ samples canvas pixels to confirm the arrow and the sum polygon are drawn where
 they should be, and exercises drag-to-edit, zoom, pan, hide/delete, undo/redo,
 input recall, copy-to-clipboard, the example picker, the comparison card, the
 keyboard groups and their hints, auto-naming, the help dialog, a phone-width
-layout, reload persistence and project export/import (76 checks). It also checks
+layout, reload persistence and project export/import (84 checks). It also checks
 that nothing rendered from LaTeX leaks its own source - across the key labels,
 the hint examples, the algebra rows and the input box itself - and that hovering
 every key moves nothing on the page, which is how several keyboard keys got

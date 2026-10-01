@@ -415,6 +415,36 @@ math-field.math-input:focus {
 .about-credit { color: var(--text-dim); font-size: 12.5px; }
 .about-dialog form { margin-top: 12px; }
 
+/* --------------------------------------------------------------- equations */
+
+.equation-card { display: flex; flex-direction: column; gap: 6px; }
+
+.equation-row { display: flex; gap: 8px; align-items: stretch; }
+.equation-row math-field.math-input { flex: 1 1 auto; min-width: 0; }
+.equation-row .btn { flex: 0 0 auto; align-self: center; }
+
+.equation-problem {
+  margin: 0;
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.equation-answers { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.equation-answers li { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.equation-answers code { font-family: var(--mono); font-size: 13px; }
+.equation-exact { color: var(--text-dim); font-size: 12px; }
+
+.equation-checks { display: grid; gap: 3px; }
+.equation-checks-title { font-size: 11px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.04em; }
+.equation-check { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+.equation-check code { font-family: var(--mono); color: var(--text); }
+.equation-ok { color: #15803d; }
+
 /* ------------------------------------------------------------- responsive */
 
 @media (max-width: 860px) {

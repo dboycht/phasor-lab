@@ -65,6 +65,8 @@ export interface Project {
   version: 1
   settings: Settings
   objects: ProjectObject[]
+  /** whatever is in the equation card (optional: older files do not have it) */
+  equation?: string
 }
 
 export const PROJECT_VERSION = 1
@@ -480,6 +482,19 @@ export class Session {
   /** variables the user can reference but that are not objects */
   private seedScope(scope: Record<string, unknown>, name: string, value: Cx): void {
     scope[name] = this.math.complex(value.re, value.im)
+  }
+
+  /**
+   * A scope with the current settings helpers plus every object's current value.
+   * Used by the equation solver, so a coefficient may be any defined quantity
+   * (`3I_1 + U = 10`).
+   */
+  valueScope(): Record<string, unknown> {
+    const scope = buildScope(this.math, this.settings)
+    for (const o of this.objects) {
+      if (o.value) this.seedScope(scope, o.name, o.value)
+    }
+    return scope
   }
 
   // ---------------------------------------------------------------- lookup
