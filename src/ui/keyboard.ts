@@ -162,6 +162,19 @@ export const SHORTCUTS: Shortcut[] = [
   { code: 'KeyT', insert: '\\text{#?}', label: '单位标签' },
 ]
 
+/** Shortcuts reuse the keyboard's own insertion strings, so they pair up here. */
+const SHORTCUT_BY_INSERT = new Map(SHORTCUTS.map((s) => [s.insert, s]))
+
+/** The shortcut that produces what this key inserts, when there is one. */
+export function shortcutFor(key: KeyDef): Shortcut | undefined {
+  return SHORTCUT_BY_INSERT.get(key.insert)
+}
+
+/** Human-readable form, e.g. `Ctrl+Alt+R`. */
+export function shortcutText(shortcut: Shortcut): string {
+  return `Ctrl+Alt+${shortcut.code.replace(/^Key/, '')}`
+}
+
 /** Folds the function group away; remembered per session. */
 let functionsFolded = false
 
@@ -176,9 +189,21 @@ export function buildKeyboard(
     const button = document.createElement('button')
     button.type = 'button'
     button.className = 'wide'
-    button.title = key.title ?? key.label
+    const shortcut = shortcutFor(key)
+    // the letter is shown in the corner of the key so it can be learned by
+    // looking, and the full combination goes in the tooltip and the hint strip
+    const shortcutLabel = shortcut ? shortcutText(shortcut) : ''
+    button.title = shortcut ? `${key.title ?? key.label} · ${shortcutLabel}` : (key.title ?? key.label)
     button.dataset.insert = key.insert
     button.innerHTML = renderLatex(key.label)
+    if (shortcut) {
+      const badge = document.createElement('span')
+      badge.className = 'key-shortcut'
+      badge.textContent = shortcut.code.replace(/^Key/, '')
+      badge.setAttribute('aria-hidden', 'true')
+      button.append(badge)
+      button.dataset.shortcut = shortcutLabel
+    }
     button.addEventListener('click', (e) => {
       e.preventDefault()
       onInsert(key)

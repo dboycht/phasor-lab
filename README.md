@@ -32,7 +32,7 @@ Ordinary calculators cannot even type phasor notation; this one is built around 
 | Names as you write them | `U1`, `I2`, `T0` are read as subscripts (`U_1`, `I_2`, `T_0`), and so are `U_1` and `X_{L}` |
 | Functions | `\abs \arg \conj \Re \Im \polar \rms \peak \om \freq \pf \todeg \torad`, `sin cos tan`, `asin acos atan atan2`, `ln log log2 exp`, powers, n-th roots, `floor ceil round` |
 | Symbol keyboard | three labelled groups — symbols, units, functions — with the function group foldable; hovering a key explains it with a worked example |
-| Keyboard shortcuts | `Ctrl+Alt+R` root, `A` angle ∠, `D` degree, `F` fraction, `J` imaginary unit, `P` π, `W` ω, `E` e^x, `B` brackets, `S` subscript, `C` conjugate, `M` modulus, `G` argument, `T` unit label — they type into whichever input box has focus |
+| Keyboard shortcuts | `Ctrl+Alt+R` root, `A` angle ∠, `D` degree, `F` fraction, `J` imaginary unit, `P` π, `W` ω, `E` e^x, `B` brackets, `S` subscript, `C` conjugate, `M` modulus, `G` argument, `T` unit label — they type into whichever input box has focus. Each key shows its letter in the corner, and hovering it spells the whole combination out |
 | Live diagram | grid, axes, coloured arrows, labels, phase-angle arc, optional sum polygon, PNG export |
 | Direct manipulation | drag a tip to edit the phasor, wheel to zoom, drag the background to pan, double-click to fit |
 | Edit again | double-click an object to load its own source back into the input box |
@@ -202,7 +202,7 @@ samples canvas pixels to confirm the arrow and the sum polygon are drawn where
 they should be, and exercises drag-to-edit, zoom, pan, hide/delete, undo/redo,
 input recall, copy-to-clipboard, the example picker, the comparison card, the
 keyboard groups and their hints, auto-naming, the help dialog, a phone-width
-layout, reload persistence and project export/import (89 checks). It also checks
+layout, reload persistence and project export/import (92 checks). It also checks
 that nothing rendered from LaTeX leaks its own source - across the key labels,
 the hint examples, the algebra rows and the input box itself - and that hovering
 every key moves nothing on the page, which is how several keyboard keys got

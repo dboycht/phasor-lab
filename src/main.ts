@@ -24,7 +24,7 @@ import { sumOf } from './plot/geometry'
 import { PhasorPanel } from './plot/panel'
 import type { DrawItem } from './plot/renderer'
 import { renderCompareCard, renderObjectList, renderResultCard, type CompareSelection } from './ui/algebra'
-import { buildKeyboard, SHORTCUTS, type KeyDef } from './ui/keyboard'
+import { buildKeyboard, shortcutFor, shortcutText, SHORTCUTS, type KeyDef } from './ui/keyboard'
 import { escapeHtml, renderLatex } from './ui/latexRender'
 
 // --------------------------------------------------------------- persistence
@@ -283,6 +283,13 @@ function showKeyHint(key: KeyDef | null): void {
     example.className = 'keyboard-hint-example'
     example.innerHTML = ` ${t('keyboard.example')} ${renderLatex(key.example)}`
     keyboardHint.append(example)
+  }
+  const shortcut = shortcutFor(key)
+  if (shortcut) {
+    const keys = document.createElement('kbd')
+    keys.className = 'keyboard-hint-keys'
+    keys.textContent = shortcutText(shortcut)
+    keyboardHint.append(keys)
   }
 }
 

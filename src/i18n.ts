@@ -34,8 +34,8 @@ const STRINGS = {
   'keyboard.units': { zh: '单位', en: 'Units' },
   'keyboard.functions': { zh: '函数', en: 'Functions' },
   'keyboard.hintIdle': {
-    zh: '把鼠标移到按键上查看说明与示例',
-    en: 'Hover a key to see what it does',
+    zh: '悬停按键看说明与示例 · 角上的小字母 = Ctrl+Alt+该字母',
+    en: 'Hover a key for details and an example · the small corner letter is Ctrl+Alt+that letter',
   },
   'keyboard.example': { zh: '例', en: 'e.g.' },
 

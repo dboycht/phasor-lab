@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { ALL_KEYS, KEY_GROUPS, SHORTCUTS } from '../src/ui/keyboard'
+import { ALL_KEYS, KEY_GROUPS, SHORTCUTS, shortcutFor, shortcutText } from '../src/ui/keyboard'
 
 const CJK = /[\u4e00-\u9fff]/
 const LATIN = /[A-Za-z]/
@@ -118,6 +118,22 @@ describe('symbol keyboard', () => {
         expect(shortcut.insert.includes('#?'), `${shortcut.code} opens a group with no slot`).toBe(true)
       }
     }
+  })
+
+  it('pairs each shortcut with the key it duplicates, for the corner badge', () => {
+    const byInsert = new Map(ALL_KEYS.map((k) => [k.insert, k]))
+    const paired = SHORTCUTS.filter((s) => byInsert.has(s.insert))
+    // the ones the user asked to see on the keys must be among them
+    for (const insert of ['\\sqrt{#?}', '\\angle ', '\\degree', '_{#?}', '\\overline{#?}', '\\abs(#?)', '\\arg(#?)']) {
+      const key = byInsert.get(insert)
+      expect(key, `no key inserts ${insert}`).toBeDefined()
+      expect(shortcutFor(key!), `no badge for ${insert}`).toBeDefined()
+    }
+    expect(paired.length).toBeGreaterThanOrEqual(13)
+    expect(shortcutText(SHORTCUTS[0]!)).toBe('Ctrl+Alt+R')
+    const subscript = SHORTCUTS.find((s) => s.insert === '_{#?}')
+    expect(subscript?.code).toBe('KeyS')
+    expect(shortcutText(subscript!)).toBe('Ctrl+Alt+S')
   })
 
   it('never puts a LaTeX command inside a unit label', () => {
