@@ -166,10 +166,11 @@ samples canvas pixels to confirm the arrow and the sum polygon are drawn where
 they should be, and exercises drag-to-edit, zoom, pan, hide/delete, undo/redo,
 input recall, copy-to-clipboard, the example picker, the comparison card, the
 keyboard groups and their hints, auto-naming, the help dialog, a phone-width
-layout, reload persistence and project export/import (65 checks). It also checks
+layout, reload persistence and project export/import (67 checks). It also checks
 that nothing rendered from LaTeX leaks its own source - across the key labels,
-the hint examples, the algebra rows and the input box itself - which is how
-several keyboard keys got caught showing `\abs(` instead of the symbol.
+the hint examples, the algebra rows and the input box itself - and that hovering
+every key moves nothing on the page, which is how several keyboard keys got
+caught showing `\abs(` instead of the symbol.
 
 ## Browser support
 
