@@ -51,11 +51,16 @@ const UNITS: KeyDef[] = [
   { label: '\\text{A}', insert: '\\text{A}', title: '安 / ampere', desc: '电流单位 / current', example: 'I=5\\angle 0\\degree\\text{A}' },
   { label: '\\text{W}', insert: '\\text{W}', title: '瓦 / watt', desc: '有功功率 / active power', example: 'P=1000\\text{W}' },
   { label: '\\text{Hz}', insert: '\\text{Hz}', title: '赫 / hertz', desc: '频率 / frequency', example: 'f=50\\text{Hz}' },
-  { label: '\\Omega', insert: '\\text{\\Omega}', title: '欧 / ohm', desc: '阻抗单位 / impedance', example: 'Z=5\\angle 53\\degree\\text{\\Omega}' },
+  // NOTE: the unit labels use the literal Unicode characters instead of
+  // \Omega / \mu. MathLive's text mode does not accept those commands, so
+  // `\text{k\Omega}` shows up as "k\Omega" inside the input box; the literal
+  // characters render everywhere (box, key, example, row) and the parser still
+  // reads the group as one unit label.
+  { label: '\\Omega', insert: '\\text{\u03a9}', title: '欧 / ohm', desc: '阻抗单位 / impedance', example: 'Z=5\\angle 53\\degree\\text{\u03a9}' },
   { label: '\\text{mA}', insert: '\\text{mA}', title: '毫安 / milliampere', desc: '千分之一安 / one thousandth of an ampere', example: 'I=20\\text{mA}' },
   { label: '\\text{kV}', insert: '\\text{kV}', title: '千伏 / kilovolt', desc: '一千伏 / one thousand volts', example: 'U=10\\text{kV}' },
-  { label: '\\text{k}\\Omega', insert: '\\text{k\\Omega}', title: '千欧 / kilo-ohm', desc: '一千欧 / one thousand ohms', example: 'R=2.2\\text{k\\Omega}' },
-  { label: '\\mu\\text{F}', insert: '\\text{\\mu F}', title: '微法 / microfarad', desc: '电容单位 / capacitance', example: 'C=100\\text{\\mu F}' },
+  { label: '\\text{k\u03a9}', insert: '\\text{k\u03a9}', title: '千欧 / kilo-ohm', desc: '一千欧 / one thousand ohms', example: 'R=2.2\\text{k\u03a9}' },
+  { label: '\\text{\u00b5F}', insert: '\\text{\u00b5F}', title: '微法 / microfarad', desc: '电容单位 / capacitance', example: 'C=100\\text{\u00b5F}' },
   { label: '\\text{mH}', insert: '\\text{mH}', title: '毫亨 / millihenry', desc: '电感单位 / inductance', example: 'L=10\\text{mH}' },
 ]
 

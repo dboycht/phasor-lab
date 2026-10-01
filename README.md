@@ -154,7 +154,7 @@ symbols.
 
 ## Verification
 
-`npm test` runs 219 unit tests: the LaTeX converter, the whole documented syntax
+`npm test` runs 220 unit tests: the LaTeX converter, the whole documented syntax
 table (four input forms, the angle model, naming, unit labels, the convention
 factor and twelve rejected inputs), the session model including undo/redo,
 auto-naming and project round-trips, the diagram geometry, the two-phasor
@@ -166,9 +166,10 @@ samples canvas pixels to confirm the arrow and the sum polygon are drawn where
 they should be, and exercises drag-to-edit, zoom, pan, hide/delete, undo/redo,
 input recall, copy-to-clipboard, the example picker, the comparison card, the
 keyboard groups and their hints, auto-naming, the help dialog, a phone-width
-layout, reload persistence and project export/import (63 checks). It also checks
-that nothing rendered from LaTeX leaks its own source, which is how several
-keyboard keys got caught showing `\abs(` instead of the symbol.
+layout, reload persistence and project export/import (65 checks). It also checks
+that nothing rendered from LaTeX leaks its own source - across the key labels,
+the hint examples, the algebra rows and the input box itself - which is how
+several keyboard keys got caught showing `\abs(` instead of the symbol.
 
 ## Browser support
 

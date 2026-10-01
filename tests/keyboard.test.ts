@@ -91,8 +91,18 @@ describe('symbol keyboard', () => {
   it('keeps the ten unit labels the diagrams show', () => {
     const units = ALL_KEYS.filter((k) => k.insert.startsWith('\\text{')).map((k) => k.insert)
     expect(units).toEqual([
-      '\\text{V}', '\\text{A}', '\\text{W}', '\\text{Hz}', '\\text{\\Omega}',
-      '\\text{mA}', '\\text{kV}', '\\text{k\\Omega}', '\\text{\\mu F}', '\\text{mH}',
+      '\\text{V}', '\\text{A}', '\\text{W}', '\\text{Hz}', '\\text{\u03a9}',
+      '\\text{mA}', '\\text{kV}', '\\text{k\u03a9}', '\\text{\u00b5F}', '\\text{mH}',
     ])
+  })
+
+  it('never puts a LaTeX command inside a unit label', () => {
+    // MathLive's text mode does not accept \Omega or \mu, so `\text{k\Omega}`
+    // is shown as "k\Omega" in the input box: unit labels use the literal
+    // characters instead (the parser reads them the same way).
+    for (const key of KEY_GROUPS.find((g) => g.id === 'units')?.keys ?? []) {
+      const inner = /^\\text\{(.*)\}$/.exec(key.insert)?.[1] ?? ''
+      expect(inner.includes('\\'), `${key.insert} contains a command inside \text{}`).toBe(false)
+    }
   })
 })
