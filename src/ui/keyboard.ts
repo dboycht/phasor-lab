@@ -126,6 +126,42 @@ export const KEY_GROUPS: KeyGroup[] = [
  */
 export const ALL_KEYS: KeyDef[] = KEY_GROUPS.flatMap((g) => g.keys)
 
+/**
+ * Keyboard shortcuts that insert a symbol straight into the focused field.
+ *
+ * They exist because the LaTeX spelling is not always typeable: `\angle`,
+ * `\degree`, `\pi` and `\omega` are recognised by the mathfield as you type,
+ * but `\sqrt` comes out as `\text{qrt }`, and nobody wants to type
+ * `\overline{...}` at all. Ctrl+Alt is used because plain Ctrl+letter is taken
+ * by the browser and Ctrl+Alt+letter is free in a page.
+ *
+ * `code` is a KeyboardEvent.code so the shortcut survives non-Latin layouts.
+ */
+export interface Shortcut {
+  code: string
+  insert: string
+  /** shown in the cheat sheet */
+  label: string
+  autoExit?: boolean
+}
+
+export const SHORTCUTS: Shortcut[] = [
+  { code: 'KeyR', insert: '\\sqrt{#?}', label: '√' },
+  { code: 'KeyA', insert: '\\angle ', label: '∠' },
+  { code: 'KeyD', insert: '\\degree', label: '°' },
+  { code: 'KeyJ', insert: 'j', label: 'j' },
+  { code: 'KeyP', insert: '\\pi', label: 'π' },
+  { code: 'KeyW', insert: '\\omega', label: 'ω' },
+  { code: 'KeyF', insert: '\\frac{#?}{#?}', label: '分数' },
+  { code: 'KeyE', insert: 'e^{#?}', label: 'e^{x}' },
+  { code: 'KeyB', insert: '\\left(#?\\right)', label: '( )' },
+  { code: 'KeyS', insert: '_{#?}', label: '下标', autoExit: true },
+  { code: 'KeyC', insert: '\\overline{#?}', label: '共轭' },
+  { code: 'KeyM', insert: '\\abs(#?)', label: '模' },
+  { code: 'KeyG', insert: '\\arg(#?)', label: '辐角' },
+  { code: 'KeyT', insert: '\\text{#?}', label: '单位标签' },
+]
+
 /** Folds the function group away; remembered per session. */
 let functionsFolded = false
 

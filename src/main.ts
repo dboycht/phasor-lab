@@ -24,7 +24,7 @@ import { sumOf } from './plot/geometry'
 import { PhasorPanel } from './plot/panel'
 import type { DrawItem } from './plot/renderer'
 import { renderCompareCard, renderObjectList, renderResultCard, type CompareSelection } from './ui/algebra'
-import { buildKeyboard, type KeyDef } from './ui/keyboard'
+import { buildKeyboard, SHORTCUTS, type KeyDef } from './ui/keyboard'
 import { escapeHtml, renderLatex } from './ui/latexRender'
 
 // --------------------------------------------------------------- persistence
@@ -564,7 +564,7 @@ function renderStaticText(): void {
   list.replaceChildren()
   const keys: StringKey[] = [
     'help.polar', 'help.rect', 'help.exp', 'help.trig', 'help.assign', 'help.multi',
-    'help.funcs', 'help.units', 'help.labels', 'help.autoName', 'help.subscript',
+    'help.funcs', 'help.units', 'help.labels', 'help.autoName', 'help.subscript', 'help.shortcuts',
     'help.edit', 'help.drag', 'help.view', 'help.history', 'help.copy',
     'help.compare', 'help.examples', 'help.files', 'help.undo',
   ]
@@ -1011,6 +1011,22 @@ const observer = new ResizeObserver(() => panel.resize())
 observer.observe($('canvas').parentElement as HTMLElement)
 
 window.addEventListener('resize', () => panel.resize())
+
+// ---------------------------------------------------------------- shortcuts
+
+/**
+ * Ctrl+Alt+letter inserts a symbol into whichever field was last focused.
+ * Capture phase, so the mathfield never sees the key as text.
+ */
+const SHORTCUT_BY_CODE = new Map(SHORTCUTS.map((s) => [s.code, s]))
+
+window.addEventListener('keydown', (ev) => {
+  if (!ev.ctrlKey || !ev.altKey || ev.shiftKey || ev.metaKey) return
+  const shortcut = SHORTCUT_BY_CODE.get(ev.code)
+  if (!shortcut) return
+  ev.preventDefault()
+  insertKey({ label: shortcut.label, insert: shortcut.insert, autoExit: shortcut.autoExit })
+}, true)
 
 // ------------------------------------------------------------------ start up
 

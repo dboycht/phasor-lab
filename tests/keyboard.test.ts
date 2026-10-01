@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { ALL_KEYS, KEY_GROUPS } from '../src/ui/keyboard'
+import { ALL_KEYS, KEY_GROUPS, SHORTCUTS } from '../src/ui/keyboard'
 
 const CJK = /[\u4e00-\u9fff]/
 const LATIN = /[A-Za-z]/
@@ -94,6 +94,30 @@ describe('symbol keyboard', () => {
       '\\text{V}', '\\text{A}', '\\text{W}', '\\text{Hz}', '\\text{\u03a9}',
       '\\text{mA}', '\\text{kV}', '\\text{k\u03a9}', '\\text{\u00b5F}', '\\text{mH}',
     ])
+  })
+
+  it('offers keyboard shortcuts, and every one is distinct', () => {
+    const codes = SHORTCUTS.map((s) => s.code)
+    expect(new Set(codes).size).toBe(codes.length)
+    for (const shortcut of SHORTCUTS) {
+      expect(shortcut.insert.length, `${shortcut.code} inserts nothing`).toBeGreaterThan(0)
+      expect(shortcut.label.length, `${shortcut.code} has no label`).toBeGreaterThan(0)
+      expect(/^Key[A-Z]$/.test(shortcut.code), `${shortcut.code} is not a Key* code`).toBe(true)
+    }
+    // the two the request named, plus the ones the LaTeX spelling makes painful
+    const inserts = SHORTCUTS.map((s) => s.insert)
+    expect(inserts.some((s) => s.startsWith('\\sqrt'))).toBe(true)
+    expect(inserts.some((s) => s.startsWith('\\angle'))).toBe(true)
+    expect(inserts.some((s) => s.startsWith('\\overline'))).toBe(true)
+  })
+
+  it('shortcuts that open a group leave the caret inside it', () => {
+    for (const shortcut of SHORTCUTS) {
+      const withoutSlot = shortcut.insert.replace('#?', '')
+      if (/[({[]\s*$/.test(withoutSlot)) {
+        expect(shortcut.insert.includes('#?'), `${shortcut.code} opens a group with no slot`).toBe(true)
+      }
+    }
   })
 
   it('never puts a LaTeX command inside a unit label', () => {

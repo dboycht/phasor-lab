@@ -113,6 +113,10 @@ const STRINGS = {
   'help.autoName': { zh: '自动命名：不写名字的表达式会依次记为 A、B、C…Z、A1；删掉对象后名字可再被使用', en: 'Auto-naming: an expression with no name becomes A, B, C ... Z, A1; a name frees up again when its object is deleted' },
   'help.subscript': { zh: '下标：写 U_1 或直接写 U1（两种都是 U₁，符号区有 xₙ 键）；3+j4、2e3 不受影响', en: 'Subscripts: write U_1 or just U1 (both mean U₁; the xₙ key inserts one). 3+j4 and 2e3 are unaffected' },
   'help.equation': { zh: '解一次方程：代数区下方「方程」卡片，例如 2x+6=0 或 3x+4y=10; x-y=1（解出的量会存进代数区）', en: 'Linear equations: use the Equations card below the algebra view, e.g. 2x+6=0 or 3x+4y=10; x-y=1 (the answers are added to the algebra view)' },
+  'help.shortcuts': {
+    zh: '快捷键（在两个输入框里都可用）：Ctrl+Alt+R 根号 · A 相角 ∠ · D 度 ° · F 分数 · J 虚数单位 · P π · W ω · E e^x · B 括号 · S 下标 · C 共轭 · M 模 · G 辐角 · T 单位标签',
+    en: 'Shortcuts (work in both input boxes): Ctrl+Alt+R root, A angle, D degree, F fraction, J imaginary unit, P pi, W omega, E e^x, B brackets, S subscript, C conjugate, M modulus, G argument, T unit label',
+  },
   'help.funcs': { zh: '函数：\\abs \\arg \\conj \\Re \\Im \\polar \\rms \\peak \\om 等（键盘"函数"区可查说明与示例）', en: 'Functions: \\abs \\arg \\conj \\Re \\Im \\polar \\rms \\peak \\om and more (see the Functions group on the keyboard)' },
   'help.units': { zh: '角度：\\degree 恒为度；裸数字按当前角度单位；\\angle 左边是相量时按旋转理解（A\\angle 30 等于 A 再转 30°）', en: 'Angles: \\degree is always degrees, a bare number follows the angle unit; with a phasor on its left, \\angle rotates it (A\\angle 30 turns A by 30 degrees)' },
   'help.labels': { zh: '单位标签写在末尾：U=220\\angle 0\\degree\\text{V}（任意文字都行，不参与计算）', en: 'A trailing \\text{...} is a label: U=220\\angle 0\\degree\\text{V} (any text, never computed)' },
