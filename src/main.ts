@@ -5,6 +5,10 @@
 
 import 'mathlive'
 import 'mathlive/fonts.css'
+// The static stylesheet is what lays out the markup `convertLatexToMarkup`
+// returns. Without it a fraction renders flat - `\frac{20}{3}` looked like
+// "320" in an object row, and the value beside it (20/3) looked wrong.
+import 'mathlive/static.css'
 import './styles.css'
 
 import type { MathfieldElement } from 'mathlive'
