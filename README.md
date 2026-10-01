@@ -29,6 +29,7 @@ Ordinary calculators cannot even type phasor notation; this one is built around 
 | Four input forms | polar, rectangular, exponential, trigonometric (mix them freely in one expression) |
 | Named variables | definitions resolve in **any order** — `I=U/Z` may come before `U` and `Z` |
 | Auto-naming | an expression you did not name becomes `A`, then `B`, … `Z`, `A1`; a name is reused once its object is gone |
+| Names as you write them | `U1`, `I2`, `T0` are read as subscripts (`U_1`, `I_2`, `T_0`), and so are `U_1` and `X_{L}` |
 | Functions | `\abs \arg \conj \Re \Im \polar \rms \peak \om \freq \pf \todeg \torad`, `sin cos tan`, `asin acos atan atan2`, `ln log log2 exp`, powers, n-th roots, `floor ceil round` |
 | Symbol keyboard | three labelled groups — symbols, units, functions — with the function group foldable; hovering a key explains it with a worked example |
 | Live diagram | grid, axes, coloured arrows, labels, phase-angle arc, optional sum polygon, PNG export |
@@ -125,6 +126,7 @@ for confirmation the first time you run either file.
 | Rounding | `\floor(2.7)`, `\ceil(2.1)`, `\round(2.5)` |
 | Grouping | `\left( ... \right)` — the `( )` key inserts it with the caret inside |
 | Auto-named | `220\angle 30\degree` with no name becomes `A=220\angle 30\degree` |
+| Subscripts | `U_1` or just `U1` — a single letter followed by digits is a subscripted name (`U1` = U₁, `T0` = T₀). `3+j4` (imaginary unit) and `2e3` (a number) are unaffected |
 
 A trailing `\text{...}` group is a **display label**, not part of the number:
 `U=220\angle 0\degree\text{V}` shows as 220 V. Any label works (`\text{\Omega}`,
@@ -161,7 +163,7 @@ symbols.
 
 ## Verification
 
-`npm test` runs 223 unit tests: the LaTeX converter, the whole documented syntax
+`npm test` runs 227 unit tests: the LaTeX converter, the whole documented syntax
 table (four input forms, the angle model, naming, unit labels, the convention
 factor and twelve rejected inputs), the session model including undo/redo,
 auto-naming and project round-trips, the diagram geometry, the two-phasor
@@ -173,7 +175,7 @@ samples canvas pixels to confirm the arrow and the sum polygon are drawn where
 they should be, and exercises drag-to-edit, zoom, pan, hide/delete, undo/redo,
 input recall, copy-to-clipboard, the example picker, the comparison card, the
 keyboard groups and their hints, auto-naming, the help dialog, a phone-width
-layout, reload persistence and project export/import (69 checks). It also checks
+layout, reload persistence and project export/import (74 checks). It also checks
 that nothing rendered from LaTeX leaks its own source - across the key labels,
 the hint examples, the algebra rows and the input box itself - and that hovering
 every key moves nothing on the page, which is how several keyboard keys got

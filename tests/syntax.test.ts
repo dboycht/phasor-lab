@@ -257,6 +257,41 @@ describe('naming', () => {
     expect(s.objects.find((o) => o.name === 'x')?.value?.re).toBeCloseTo(24, 9)
   })
 
+  it('a single letter followed by digits is a subscripted name', () => {
+    // the way circuit quantities are written on paper: U1, I2, T0, R12
+    const s = new Session()
+    s.submit('U1=5;T0=4;R12=3')
+    expect(s.objects.map((o) => o.name)).toEqual(['U_1', 'T_0', 'R_12'])
+    // and it is the same object as the explicit subscript spelling
+    s.submit('U_1=7')
+    expect(s.objects.filter((o) => o.name === 'U_1')).toHaveLength(1)
+    expect(s.objects.find((o) => o.name === 'U_1')?.value?.re).toBe(7)
+  })
+
+  it('keeps the imaginary unit, Euler number and numbers in front of digits', () => {
+    expectCx('3+j4', 3, 4)
+    expectCx('j4', 0, 4)
+    // `e3` is Euler's number times 3 (only the plain `e` keeps a digit as a
+    // factor), while a number followed by digits is scientific notation
+    expectCx('e3', Math.E * 3, 0)
+    expectCx('2e3', 2000, 0)
+    expectCx('1e-5', 1e-5, 0)
+  })
+
+  it('a run of letters stays a product even with digits after it', () => {
+    const s = new Session()
+    s.submit('a=2;b=3')
+    s.submit('x=ab1')
+    expect(s.objects.find((o) => o.name === 'x')?.value?.re).toBeCloseTo(6, 9)
+  })
+
+  it('names a bare expression with a digit subscript', () => {
+    const s = new Session()
+    const r = s.submit('U1=5', { autoName: true })
+    expect(r.ok && r.autoNamed).toBeUndefined()
+    expect(s.objects[0]?.name).toBe('U_1')
+  })
+
   it('\\omega is one name, not w-times-omega', () => {
     const s = new Session()
     s.submit('R=1;\\omega=314;C=1e-5;X=1/(j\\omega C)')

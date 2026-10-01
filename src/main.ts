@@ -146,6 +146,7 @@ input.addEventListener('keydown', (ev: KeyboardEvent) => {
   }
   if (ev.key === 'Escape') {
     input.value = ''
+    subscriptOpen = false
     historyIndex = inputHistory.length
     showInputError(undefined)
     return
@@ -184,6 +185,7 @@ input.addEventListener('change', syncInputEmpty)
  */
 function syncInputEmpty(): void {
   input.classList.toggle('is-empty', input.value.trim() === '')
+  if (input.value.trim() === '') subscriptOpen = false
 }
 
 function applyToInput(latex: string): void {
@@ -198,7 +200,28 @@ function applyToInput(latex: string): void {
 function insertKey(key: KeyDef): void {
   input.insert(key.insert)
   input.focus()
+  if (key.autoExit) subscriptOpen = true
 }
+
+/**
+ * MathLive keeps the caret inside a `_{...}` group, so after "U" + the subscript
+ * key + "1" the next "=" would land *inside* the subscript (`U_{1=}`). Waiting
+ * for a closing character and stepping out of the group first keeps the template
+ * usable: "U" + key + "1" + "=" + "4" really is `U_1=4`.
+ */
+let subscriptOpen = false
+
+/** Capture phase: it must run before MathLive inserts the character itself. */
+input.addEventListener('keydown', (ev: KeyboardEvent) => {
+  if (!subscriptOpen) return
+  if (!/^[=+\-*/),;]$/.test(ev.key)) return
+  subscriptOpen = false
+  try {
+    input.executeCommand('moveAfterParent')
+  } catch {
+    /* older MathLive: the user can press ArrowRight themselves */
+  }
+}, true)
 
 /**
  * The hint strip under the keyboard: what the key does, and a worked example.
@@ -282,7 +305,7 @@ function submitInput(): void {
   // reused by later expressions (GeoGebra-style: A, B, ... Z, A1, ...).
   const result = session.submit(latex, { autoName: true })
   if (!result.ok) {
-    showInputError(describeError(result.error))
+    showInputError(describeError(result.error, latex))
     return
   }
   showInputError(undefined)
@@ -319,9 +342,17 @@ function doRedo(): void {
   rebuildUI()
 }
 
-function describeError(error: { code: string; detail: string }): string {
+function describeError(error: { code: string; detail: string }, source = ''): string {
   const key = `err.${error.code}` as StringKey
-  const detail = error.code === 'eval' ? translateEvalError(error.detail) : error.detail
+  // For a bad assignment, point at what was actually written on the left (the
+  // parser only knows it hit an "=" sign): "found 2x" beats "found =".
+  const left = source.includes('=') ? (source.split('=')[0] ?? '').trim() : ''
+  const detail =
+    error.code === 'bad-assignment' && left !== ''
+      ? left
+      : error.code === 'eval'
+        ? translateEvalError(error.detail)
+        : error.detail
   const template = t(key)
   if (template === key && error.code !== 'eval') {
     return `${t('err.eval', { detail })}`
@@ -496,7 +527,7 @@ function renderStaticText(): void {
   list.replaceChildren()
   const keys: StringKey[] = [
     'help.polar', 'help.rect', 'help.exp', 'help.trig', 'help.assign', 'help.multi',
-    'help.funcs', 'help.units', 'help.labels', 'help.autoName',
+    'help.funcs', 'help.units', 'help.labels', 'help.autoName', 'help.subscript',
     'help.edit', 'help.drag', 'help.view', 'help.history', 'help.copy',
     'help.compare', 'help.examples', 'help.files', 'help.undo',
   ]

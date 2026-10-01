@@ -28,6 +28,12 @@ export interface KeyDef {
   desc?: string
   /** a worked example (LaTeX) for the hint strip */
   example?: string
+  /**
+   * True for keys that open a group MathLive keeps the caret inside. The app
+   * moves the caret back out when the next closing character is typed, because
+   * otherwise `U` + this key + `1` + `=` would put the "=" inside the subscript.
+   */
+  autoExit?: boolean
 }
 
 const SYMBOLS: KeyDef[] = [
@@ -39,6 +45,7 @@ const SYMBOLS: KeyDef[] = [
   { label: '\\varphi', insert: '\\varphi', title: 'φ  初相位 / phase', desc: '相位角（也叫 \u03c6）/ phase angle', example: '\\varphi=30\\degree' },
   { label: '\\theta', insert: '\\theta', title: 'θ', desc: '通用角度符号 / a generic angle', example: '\\theta=45\\degree' },
   { label: '(\\;)', insert: '\\left(#?\\right)', title: '( )  圆括号 / parentheses', desc: '分组，插入后光标在括号内 / groups a sub-expression', example: '(3+4j)\\cdot 2' },
+  { label: 'x_{n}', insert: '_{#?}', title: '下标 / subscript', desc: '给前一个字母加下标：U₁、I₂；直接写 U1 也可以 / subscript of the previous letter', example: 'U_1=220\\angle 0\\degree', autoExit: true },
   { label: '|\\;|', insert: '\\left|#?\\right|', title: '| |  模 / modulus', desc: '复数的模（绝对值）/ magnitude of a complex number', example: '|3+4j|=5' },
   { label: '\\overline{Z}', insert: '\\overline{#?}', title: '共轭 / conjugate', desc: '把虚部取反 / flips the sign of the imaginary part', example: '\\overline{3+4j}=3-4j' },
   { label: '\\dot{U}', insert: '\\dot{#?}', title: '相量记号 / phasor dot', desc: '相量记号，只是写法，不改变数值 / phasor notation only', example: '\\dot{U}=220\\angle 30\\degree\\text{V}' },

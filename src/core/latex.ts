@@ -286,11 +286,27 @@ function lex(src: string): Tok[] {
 
     if (isAlpha(c)) {
       // letters, optionally followed by an underscore subscript.
-      // Digits are deliberately NOT part of the run: `j30` must lex as j * 30.
+      // A MULTI-letter run still excludes digits: `abc` is a*b*c, and `j30` is
+      // j*30 (the imaginary unit is written before its factor: `3+j4`).
       const start = i
       const m = /^[A-Za-z]+(?:_(?:\{[A-Za-z0-9]+\}|[A-Za-z0-9]+))?/.exec(s.slice(i))
-      const run = m ? (m[0] as string) : c
-      i += run.length
+      const letterRun = m ? (m[0] as string) : c
+      let run = letterRun
+      let advance = letterRun.length
+
+      // A SINGLE letter followed by digits is a subscripted name, which is how
+      // circuit quantities are actually written on paper: U1, I2, T0, R3.
+      // `j`, `i` (imaginary unit) and `e` (Euler's number) keep their meaning,
+      // so `3+j4` is still 3+4j and `2e3` is still 2*e*3.
+      if (/^[A-Za-z]$/.test(letterRun) && !'jie'.includes(letterRun)) {
+        const digits = /^\d+/.exec(s.slice(start + letterRun.length))
+        if (digits) {
+          run = `${letterRun}_${digits[0]}`
+          advance += (digits[0] as string).length
+        }
+      }
+
+      i = start + advance
       toks.push(...lexIdentRun(run, start))
       continue
     }
