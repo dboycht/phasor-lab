@@ -42,7 +42,7 @@ const SYMBOLS: KeyDef[] = [
   { label: '|\\;|', insert: '\\left|#?\\right|', title: '| |  模 / modulus', desc: '复数的模（绝对值）/ magnitude of a complex number', example: '|3+4j|=5' },
   { label: '\\overline{Z}', insert: '\\overline{#?}', title: '共轭 / conjugate', desc: '把虚部取反 / flips the sign of the imaginary part', example: '\\overline{3+4j}=3-4j' },
   { label: '\\dot{U}', insert: '\\dot{#?}', title: '相量记号 / phasor dot', desc: '相量记号，只是写法，不改变数值 / phasor notation only', example: '\\dot{U}=220\\angle 30\\degree\\text{V}' },
-  { label: '\\frac{a}{b}', insert: '\\frac{#?}{#?}', title: '分式 / fraction', desc: '除法；分母为零会报错 / division', example: '\\frac{220\\angle 0\\degree}{3+4j}' },
+  { label: '\\frac{a}{b}', insert: '\\frac{#?}{#?}', title: '分式 / fraction', desc: '除法；分母为零会报错 / division', example: '\\frac{1}{2}=0.5' },
   { label: '\\sqrt{\\;}', insert: '\\sqrt{#?}', title: '根号 / square root', desc: '平方根；n 次根用 \\sqrt[n]{x} / square root', example: '\\sqrt{3^2+4^2}=5' },
 ]
 
@@ -70,7 +70,7 @@ const FUNCTIONS: KeyDef[] = [
   { label: '\\conj(\\;)', insert: '\\conj(#?)', title: '共轭 / conjugate', desc: '虚部取反 / conjugate', example: '\\conj(3+4j)=3-4j' },
   { label: '\\Re(\\;)', insert: '\\Re(#?)', title: '实部 / real part', desc: '取实部 / real part', example: '\\Re(3+4j)=3' },
   { label: '\\Im(\\;)', insert: '\\Im(#?)', title: '虚部 / imaginary part', desc: '取虚部 / imaginary part', example: '\\Im(3+4j)=4' },
-  { label: '\\polar(\\;,\\;)', insert: '\\polar(#?, #?)', title: '由模和辐角构造 / from modulus and angle', desc: '极坐标构造：polar(模, 角)，角按当前单位 / polar constructor', example: '\\polar(220,30)=190.5+110j' },
+  { label: '\\polar(\\;,\\;)', insert: '\\polar(#?, #?)', title: '极坐标构造 / polar form', desc: 'polar(模, 角)，角按当前角度单位 / modulus and angle', example: '\\polar(5,30)' },
   { label: '\\rms(\\;)', insert: '\\rms(#?)', title: '有效值 / RMS', desc: '振幅 → 有效值（÷√2）/ amplitude to RMS', example: '\\rms(311\\angle 0\\degree)=220' },
   { label: '\\peak(\\;)', insert: '\\peak(#?)', title: '振幅 / amplitude', desc: '有效值 → 振幅（×√2）/ RMS to amplitude', example: '\\peak(220\\angle 0\\degree)=311' },
   { label: '\\om(\\;)', insert: '\\om(#?)', title: 'ω = 2πf', desc: '由频率求角频率 / frequency to angular frequency', example: '\\om(50)=314.16' },

@@ -269,9 +269,15 @@ math-field.math-input:focus {
 .keyboard-group-title[aria-expanded] { cursor: pointer; }
 .keyboard-group-title[aria-expanded]:hover { color: var(--accent); }
 
+/* Fixed height on purpose: the explanation changes as you hover from key to key,
+   and a growing/shrinking strip pushed the result and comparison cards up and
+   down by up to 40px ("the formulas below jitter"). 47px is the tallest hint
+   measured across every key and width (a rendered fraction); overflow is a
+   safety valve for narrower panes. */
 .keyboard-hint {
+  height: 47px;
+  overflow-y: auto;
   margin: 6px 0 0;
-  min-height: 18px;
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-dim);
