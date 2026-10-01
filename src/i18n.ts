@@ -102,6 +102,7 @@ const STRINGS = {
   'object.show': { zh: '显示', en: 'Show' },
   'object.delete': { zh: '删除', en: 'Delete' },
   'object.error': { zh: '无法求值', en: 'Cannot evaluate' },
+  'object.dragHint': { zh: '拖动可调整顺序（或 Alt+↑/↓）', en: 'drag to reorder (or Alt+↑/↓)' },
 
   'help.title': { zh: '语法速查', en: 'Syntax cheat sheet' },
   'help.polar': { zh: '极坐标：220\\angle 30\\degree 或 220\\angle 30', en: 'Polar: 220\\angle 30\\degree or 220\\angle 30' },
@@ -121,6 +122,7 @@ const STRINGS = {
   'help.units': { zh: '角度：\\degree 恒为度；裸数字按当前角度单位；\\angle 左边是相量时按旋转理解（A\\angle 30 等于 A 再转 30°）', en: 'Angles: \\degree is always degrees, a bare number follows the angle unit; with a phasor on its left, \\angle rotates it (A\\angle 30 turns A by 30 degrees)' },
   'help.labels': { zh: '单位标签写在末尾：U=220\\angle 0\\degree\\text{V}（任意文字都行，不参与计算）', en: 'A trailing \\text{...} is a label: U=220\\angle 0\\degree\\text{V} (any text, never computed)' },
   'help.edit': { zh: '改一个数：双击对象行，改完回车覆盖它', en: 'Change one number: double-click the row, edit, press Enter' },
+  'help.reorder': { zh: '调整顺序：拖住对象行上下移动（或选中后 Alt+↑/↓）；顺序决定求和链的先后与列表显示', en: 'Reorder: drag a row up or down (or select it and press Alt+↑/↓). The order decides the sum chain and the list' },
   'help.drag': { zh: '拖动箭头端点改值：Shift 只改角度、Alt 只改模、工具栏可开 15° 吸附', en: 'Drag an arrow tip to edit: Shift = angle only, Alt = magnitude only, 15 deg snap in the toolbar' },
   'help.view': { zh: '视图：滚轮缩放、拖空白平移、双击空白自适应', en: 'View: wheel to zoom, drag the background to pan, double-click to fit' },
   'help.history': { zh: '输入历史：输入框为空时按 ↑ 调出上一条，↓ 往回走', en: 'Input history: press Up in an empty box to recall, Down to go forward' },

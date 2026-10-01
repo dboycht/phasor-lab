@@ -24,7 +24,12 @@ export interface AlgebraCallbacks {
   onDelete: (id: number) => void
   /** double-click: load the object back into the input box for editing */
   onEdit: (id: number) => void
+  /** drop the dragged row at this index (already resolved to a list position) */
+  onMove: (id: number, toIndex: number) => void
 }
+
+/** Which row is being dragged, and where it would land. */
+let dragState: { id: number; above: number } | undefined
 
 export function renderObjectList(
   host: HTMLElement,
@@ -42,15 +47,23 @@ export function renderObjectList(
     return
   }
 
-  for (const o of session.objects) {
-    host.append(buildRow(o, session, selectedId === o.id, cb))
-  }
+  session.objects.forEach((o, index) => {
+    host.append(buildRow(o, session, selectedId === o.id, index, cb))
+  })
 }
 
-function buildRow(o: PhasorObject, session: Session, selected: boolean, cb: AlgebraCallbacks): HTMLElement {
+function buildRow(
+  o: PhasorObject,
+  session: Session,
+  selected: boolean,
+  index: number,
+  cb: AlgebraCallbacks,
+): HTMLElement {
   const row = document.createElement('div')
   row.className = 'object-row' + (selected ? ' selected' : '') + (o.error ? ' error' : '')
   row.dataset.id = String(o.id)
+  // dragging the row reorders the list; the handlers are below
+  row.draggable = true
 
   const swatch = document.createElement('span')
   swatch.className = 'swatch'
@@ -95,9 +108,81 @@ function buildRow(o: PhasorObject, session: Session, selected: boolean, cb: Alge
   actions.append(eye, del)
   row.append(swatch, main, actions)
   row.addEventListener('click', () => cb.onSelect(o.id))
-  row.title = t('input.editHint')
+  row.title = `${t('input.editHint')} · ${t('object.dragHint')}`
   row.addEventListener('dblclick', () => cb.onEdit(o.id))
+
+  // ---- reordering ---------------------------------------------------------
+  // The dragged row is inserted *before* the row under the pointer when the
+  // pointer is in its upper half, and after it in the lower half, which is what
+  // makes dropping at the very end possible at all.
+  row.addEventListener('dragstart', (ev) => {
+    dragState = { id: o.id, above: index }
+    row.classList.add('is-dragging')
+    if (ev.dataTransfer) {
+      ev.dataTransfer.effectAllowed = 'move'
+      // Firefox refuses to start a drag without data on the transfer
+      ev.dataTransfer.setData('text/plain', String(o.id))
+    }
+  })
+
+  row.addEventListener('dragover', (ev) => {
+    if (!dragState) return
+    ev.preventDefault()
+    if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move'
+    const box = row.getBoundingClientRect()
+    const lowerHalf = ev.clientY - box.top > box.height / 2
+    dragState.above = index + (lowerHalf ? 1 : 0)
+    paintDropTarget(host(ev), dragState.above)
+  })
+
+  row.addEventListener('drop', (ev) => {
+    if (!dragState) return
+    ev.preventDefault()
+    const { id, above } = dragState
+    clearDropTarget(host(ev))
+    dragState = undefined
+    cb.onMove(id, above)
+  })
+
+  row.addEventListener('dragend', () => {
+    dragState = undefined
+    row.classList.remove('is-dragging')
+    const list = row.parentElement
+    if (list) clearDropTarget(list)
+  })
+
   return row
+}
+
+/** The list element an event happened inside. */
+function host(ev: Event): HTMLElement {
+  const target = ev.currentTarget as HTMLElement
+  return (target.parentElement ?? target) as HTMLElement
+}
+
+/**
+ * One rule for every row: at most one of them shows the insertion line, and it
+ * is the one the drop would land before.
+ */
+function paintDropTarget(list: HTMLElement, above: number): void {
+  const rows = list.querySelectorAll<HTMLElement>('.object-row')
+  rows.forEach((row, i) => {
+    row.classList.toggle('drop-above', i === above)
+    row.classList.remove('drop-below')
+  })
+  if (above >= rows.length && rows.length > 0) {
+    const last = rows[rows.length - 1]
+    if (last) {
+      last.classList.remove('drop-above')
+      last.classList.add('drop-below')
+    }
+  }
+}
+
+function clearDropTarget(list: HTMLElement): void {
+  for (const row of list.querySelectorAll<HTMLElement>('.object-row')) {
+    row.classList.remove('drop-above', 'drop-below', 'is-dragging')
+  }
 }
 
 /** The detail card for the selected object (or the last un-assigned result). */

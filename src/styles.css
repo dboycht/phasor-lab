@@ -470,6 +470,28 @@ math-field.math-input:focus {
 .equation-check code { font-family: var(--mono); color: var(--text); }
 .equation-ok { color: #15803d; }
 
+.object-row { position: relative; }
+
+/* ------------------------------------------------------- list reordering */
+
+/* the row is a drag handle; the buttons inside keep their own cursor */
+.object-row[draggable='true'] { cursor: grab; }
+.object-row.is-dragging { opacity: 0.45; cursor: grabbing; }
+
+.object-row.drop-above::before,
+.object-row.drop-below::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.object-row.drop-above::before { top: -3px; }
+.object-row.drop-below::after { bottom: -3px; }
+
 /* --------------------------------------------------------------- settings */
 
 .settings-dialog { width: min(660px, 92vw); max-width: 660px; }

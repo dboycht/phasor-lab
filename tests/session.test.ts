@@ -254,6 +254,100 @@ describe('session: object management', () => {
   })
 })
 
+describe('session: reordering the list', () => {
+  const names = (s: Session): string[] => s.objects.map((o) => o.name)
+
+  it('moves an object down, up and back to the front', () => {
+    const s = new Session()
+    s.submit('A=1;B=2;C=3')
+    // insertion points are read against the list as it is now
+    s.move(s.objects[0]!.id, 2)
+    expect(names(s)).toEqual(['B', 'A', 'C'])
+    s.move(s.objects[1]!.id, 0)
+    expect(names(s)).toEqual(['A', 'B', 'C'])
+    s.move(s.objects[1]!.id, 1)
+    expect(names(s)).toEqual(['A', 'B', 'C'])
+  })
+
+  it('lands a row under its neighbour, not one place further', () => {
+    const s = new Session()
+    s.submit('A=1;B=2;C=3')
+    // the drag handler passes "insert before the row after this one"
+    s.move(s.objects[0]!.id, 2)
+    expect(names(s)).toEqual(['B', 'A', 'C'])
+    // and dropping at the very end really is the end
+    s.move(s.objects[2]!.id, 3)
+    expect(names(s)).toEqual(['B', 'A', 'C'])
+    s.move(s.objects[0]!.id, 3)
+    expect(names(s)).toEqual(['A', 'C', 'B'])
+  })
+
+  it('renumbers `order` so the arrangement is the data, not the position', () => {
+    const s = new Session()
+    s.submit('A=1;B=2;C=3')
+    s.move(s.objects[2]!.id, 0)
+    expect(names(s)).toEqual(['C', 'A', 'B'])
+    expect(s.objects.map((o) => o.order)).toEqual([0, 1, 2])
+  })
+
+  it('keeps every colour with its own object', () => {
+    const s = new Session()
+    s.submit('A=1;B=2;C=3')
+    const colours = new Map(s.objects.map((o) => [o.name, o.color]))
+    s.move(s.objects[2]!.id, 0)
+    for (const o of s.objects) expect(o.color).toBe(colours.get(o.name))
+  })
+
+  it('clamps a target outside the list instead of dropping the object', () => {
+    const s = new Session()
+    s.submit('A=1;B=2')
+    const a = s.objects[0]!.id
+    s.move(a, 99)
+    expect(names(s)).toEqual(['B', 'A'])
+    // the same object moves back, clamped to the top
+    s.move(a, -5)
+    expect(names(s)).toEqual(['A', 'B'])
+  })
+
+  it('writes nothing when the position does not change', () => {
+    const s = new Session()
+    s.submit('A=1;B=2')
+    s.forgetHistory()
+    expect(s.canUndo).toBe(false)
+    expect(s.move(s.objects[0]!.id, 0)).toBe(false)
+    expect(s.canUndo).toBe(false)
+    expect(s.move(9999, 0)).toBe(false)
+    expect(s.canUndo).toBe(false)
+    expect(names(s)).toEqual(['A', 'B'])
+  })
+
+  it('is one undo step, and survives a project round trip', () => {
+    const s = new Session()
+    s.submit('A=1;B=2;C=3')
+    s.move(s.objects[2]!.id, 0)
+    expect(names(s)).toEqual(['C', 'A', 'B'])
+
+    const project = s.toProject()
+    const reloaded = new Session()
+    expect(reloaded.loadProject(project)).toBeUndefined()
+    expect(names(reloaded)).toEqual(['C', 'A', 'B'])
+
+    const single = new Session()
+    single.submit('A=1;B=2;C=3')
+    single.move(single.objects[2]!.id, 0)
+    single.undo()
+    expect(names(single)).toEqual(['A', 'B', 'C'])
+  })
+
+  it('does not change what the values are', () => {
+    const s = new Session()
+    s.submit('U=10;Z=2;I=U/Z')
+    const before = s.objects.map((o) => `${o.name}:${o.value?.re}`)
+    s.move(s.objects[2]!.id, 0)
+    expect(s.objects.map((o) => `${o.name}:${o.value?.re}`).sort()).toEqual([...before].sort())
+  })
+})
+
 describe('session: settings', () => {
   it('reinterprets a bare angle when the unit changes', () => {
     const s = new Session()

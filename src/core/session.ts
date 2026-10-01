@@ -249,6 +249,40 @@ export class Session {
     this.rebuild()
   }
 
+  /**
+   * Move an object to another position in the list.
+   *
+   * `toIndex` is an **insertion point** in the list as it is now: the row lands
+   * before whatever currently sits at that index (`length` means "at the end").
+   * The row is pulled out first, which shifts everything after it down by one,
+   * so a downward move is corrected - without that, dropping a row under its
+   * neighbour would land it one place too far.
+   *
+   * The order is data, not presentation: it is what the algebra view shows, what
+   * the sum polygon chains head-to-tail in, and what the project file restores.
+   * Colours stay with their object - re-colouring the whole diagram because one
+   * row moved would make the picture impossible to read.
+   *
+   * Returns false (and writes nothing) when the position does not change, so a
+   * drag that ends where it started does not add an undo step.
+   */
+  move(id: number, toIndex: number): boolean {
+    const from = this.objects.findIndex((o) => o.id === id)
+    if (from < 0) return false
+    let to = Math.max(0, Math.min(this.objects.length, Math.round(toIndex)))
+    if (to > from) to -= 1
+    if (to === from) return false
+    this.checkpoint()
+    const [moved] = this.objects.splice(from, 1)
+    if (!moved) return false
+    this.objects.splice(to, 0, moved)
+    this.objects.forEach((o, i) => {
+      o.order = i
+    })
+    this.rebuild()
+    return true
+  }
+
   clear(): void {
     if (this.objects.length === 0 && !this.transient) return
     this.checkpoint()

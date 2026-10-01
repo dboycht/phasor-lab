@@ -565,6 +565,12 @@ function render(): void {
       render()
       input.focus()
     },
+    onMove: (id, toIndex) => {
+      if (!session.move(id, toIndex)) return
+      selectedId = id
+      persist()
+      render()
+    },
   })
   renderResultCard(resultCard, session, selectedId, copyResult)
   renderCompareCard(compareCard, session, compareSelection, selectedId, (next) => {
@@ -602,7 +608,7 @@ function renderStaticText(): void {
   const keys: StringKey[] = [
     'help.polar', 'help.rect', 'help.exp', 'help.trig', 'help.assign', 'help.multi',
     'help.funcs', 'help.units', 'help.labels', 'help.autoName', 'help.subscript', 'help.shortcuts',
-    'help.edit', 'help.drag', 'help.view', 'help.history', 'help.copy',
+    'help.edit', 'help.reorder', 'help.drag', 'help.view', 'help.history', 'help.copy',
     'help.compare', 'help.examples', 'help.files', 'help.undo',
   ]
   for (const key of keys) {
@@ -1494,6 +1500,26 @@ window.addEventListener('keydown', (ev) => {
   if (!shortcut) return
   ev.preventDefault()
   insertKey({ label: shortcut.label, insert: shortcut.insert, autoExit: shortcut.autoExit })
+}, true)
+
+/**
+ * Alt+Arrow moves the selected object up or down - the mouse-free way to do what
+ * dragging a row does. It stays out of the way while the settings dialog is
+ * capturing a new shortcut.
+ */
+window.addEventListener('keydown', (ev) => {
+  if (shortcutCapture) return
+  if (!ev.altKey || ev.ctrlKey || ev.metaKey || ev.shiftKey) return
+  if (ev.code !== 'ArrowUp' && ev.code !== 'ArrowDown') return
+  const index = session.objects.findIndex((o) => o.id === selectedId)
+  if (index < 0 || selectedId === undefined) return
+  ev.preventDefault()
+  // `move` takes an insertion point, so moving down has to aim *past* the next
+  // row (aiming at it would be a no-op after the row is pulled out)
+  const to = index + (ev.code === 'ArrowUp' ? -1 : 2)
+  if (!session.move(selectedId, to)) return
+  persist()
+  render()
 }, true)
 
 // ------------------------------------------------------------------ start up
