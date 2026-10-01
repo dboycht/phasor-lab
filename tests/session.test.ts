@@ -123,6 +123,51 @@ describe('session: submitting input', () => {
     expect(s.objects).toHaveLength(0)
   })
 
+  it('names a bare expression when the UI asks it to', () => {
+    const s = new Session()
+    const r = s.submit('3+4j', { autoName: true })
+    expect(r.ok).toBe(true)
+    if (!r.ok) return
+    expect(r.autoNamed).toEqual(['A'])
+    expect(s.transient).toBeUndefined()
+    expect(s.objects).toHaveLength(1)
+    expect(s.objects[0]!.name).toBe('A')
+    expect(s.objects[0]!.value).toEqual({ re: 3, im: 4 })
+    // the stored source carries the name, so saving and reloading keeps it
+    expect(s.objects[0]!.latex).toBe('A=3+4j')
+  })
+
+  it('hands out A, B, C ... and continues past Z', () => {
+    const s = new Session()
+    const names: string[] = []
+    for (let i = 0; i < 28; i++) {
+      const r = s.submit(`${i + 1}`, { autoName: true })
+      if (r.ok) names.push(...(r.autoNamed ?? []))
+    }
+    expect(names.slice(0, 3)).toEqual(['A', 'B', 'C'])
+    expect(names[25]).toBe('Z')
+    expect(names[26]).toBe('A1')
+    expect(names[27]).toBe('B1')
+  })
+
+  it('never reuses a name that is still in use, and frees it when deleted', () => {
+    const s = new Session()
+    s.submit('A=1')
+    const r = s.submit('2+2', { autoName: true })
+    expect(r.ok && r.autoNamed).toEqual(['B'])
+    const a = s.objects.find((o) => o.name === 'A')!
+    s.remove(a.id)
+    const again = s.submit('3+3', { autoName: true })
+    expect(again.ok && again.autoNamed).toEqual(['A'])
+  })
+
+  it('names only the statements that were left unnamed', () => {
+    const s = new Session()
+    const r = s.submit('U=220\\angle 0\\degree; 5\\angle 90', { autoName: true })
+    expect(r.ok && r.autoNamed).toEqual(['A'])
+    expect(s.objects.map((o) => o.name)).toEqual(['U', 'A'])
+  })
+
   it('updates an existing object instead of duplicating it', () => {
     const s = new Session()
     s.submit('U=220\\angle 0\\degree')

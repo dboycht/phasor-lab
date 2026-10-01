@@ -88,6 +88,8 @@ const FUNCTION_COMMANDS: Record<string, string> = {
   max: 'max', min: 'min', atan2: 'atan2',
   Re: 're', Im: 'im', abs: 'abs', conj: 'conj', polar: 'polar',
   rms: 'rms', peak: 'peak', om: 'om',
+  pf: 'pf', freq: 'freq', todeg: 'todeg', torad: 'torad',
+  floor: 'floor', ceil: 'ceil', round: 'round', sign: 'sign', mod: 'mod',
 }
 
 /** Function names recognised when written as plain letters (optionally before `(`). */
@@ -96,6 +98,7 @@ const FUNCTION_WORDS = new Set([
   'sqrt', 'exp', 'ln', 'log', 'log10', 'log2', 'sin', 'cos', 'tan', 'cot', 'sec', 'csc',
   'sinh', 'cosh', 'tanh', 'asin', 'acos', 'atan', 'atan2', 'max', 'min',
   'round', 'floor', 'ceil', 'sign', 'mod', 'polar', 'rms', 'peak', 'om',
+  'pf', 'freq', 'todeg', 'torad',
 ])
 
 /** our AST function name -> the name mathjs knows. */
@@ -107,6 +110,7 @@ const FN_TO_MATHJS: Record<string, string> = {
   sinh: 'sinh', cosh: 'cosh', tanh: 'tanh', asin: 'asin', acos: 'acos', atan: 'atan',
   atan2: 'atan2', max: 'max', min: 'min', round: 'round', floor: 'floor', ceil: 'ceil',
   sign: 'sign', mod: 'mod', polar: 'polar', rms: 'rms', peak: 'peak', om: 'om',
+  pf: 'pf', freq: 'freq', todeg: 'todeg', torad: 'torad', nthRoot: 'nthRoot',
 }
 
 /** Names that are a single symbol even though they are longer than one letter. */
@@ -200,6 +204,14 @@ function lex(src: string): Tok[] {
       if (dm && (dm[1] as string) in FUNCTION_COMMANDS) {
         name = dm[1] as string
         i = start + dm[0].length
+      }
+
+      // The same idea for the subscript spelling people actually type:
+      // `\log_2`, `\log_{2}`, `\log_{10}` mean the same as `\log2` / `\log10`.
+      const sub = /^\\([A-Za-z]+)_\{?(\d+)\}?/.exec(s.slice(start))
+      if (sub && (`${sub[1]}${sub[2]}`) in FUNCTION_COMMANDS) {
+        name = `${sub[1]}${sub[2]}`
+        i = start + sub[0].length
       }
 
       switch (name) {
@@ -486,7 +498,14 @@ class Parser {
       case 'frac':
         return { k: 'bin', op: '/', a: this.parseBraceOrOperand(), b: this.parseBraceOrOperand() }
       case 'sqrt': {
-        if (this.peekToken().kind === 'lp') throw new LatexError('unexpected-token', '\\sqrt[', t.pos)
+        // \sqrt[3]{x} is the n-th root; plain \sqrt{x} stays the square root
+        if (this.peekToken().kind === 'lp') {
+          this.next()
+          const order = this.parseExpression(0)
+          if (this.peekToken().kind !== 'rp') throw new LatexError('unclosed-brace', '[', t.pos)
+          this.next()
+          return { k: 'call', name: 'nthRoot', args: [this.parseBraceOrOperand(), order] }
+        }
         return { k: 'call', name: 'sqrt', args: [this.parseBraceOrOperand()] }
       }
       case 'pipe': {
@@ -561,7 +580,7 @@ function toRadiansExpr(inner: string): string {
 }
 
 /** Functions whose first argument is an angle. */
-const ANGLE_ARG_FUNCTIONS = new Set(['sin', 'cos', 'tan', 'cot', 'sec', 'csc'])
+const ANGLE_ARG_FUNCTIONS = new Set(['sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'pf'])
 
 /** True when argument `idx` of `name` is an angle position. */
 function isAngleArgument(name: string, idx: number): boolean {

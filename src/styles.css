@@ -227,7 +227,11 @@ math-field.math-input:focus {
   border-color: var(--accent);
 }
 
-.keyboard { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+/* symbols / units / functions: the heading sits at the left of its own row of
+   keys, which keeps the three groups apart without costing three extra lines */
+.keyboard { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; max-height: 214px; overflow-y: auto; }
+.keyboard-group { display: flex; flex-direction: row; align-items: flex-start; gap: 6px; }
+.keyboard-keys { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: wrap; gap: 4px; }
 
 .keyboard button {
   min-width: 32px;
@@ -246,7 +250,34 @@ math-field.math-input:focus {
 .keyboard button:hover { background: var(--accent-soft); border-color: var(--accent); }
 .keyboard button.wide { padding: 0 10px; }
 .keyboard button .ML__latex { font-size: 12px; }
-.keyboard-divider { width: 1px; align-self: stretch; background: var(--border); margin: 0 3px; }
+
+.keyboard-group-title {
+  flex: 0 0 auto;
+  min-width: 26px;
+  height: auto;
+  padding: 7px 0 0;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: default;
+  text-align: left;
+}
+.keyboard-group-title:hover { background: none; border: none; }
+.keyboard-group-title[aria-expanded] { cursor: pointer; }
+.keyboard-group-title[aria-expanded]:hover { color: var(--accent); }
+
+.keyboard-hint {
+  margin: 6px 0 0;
+  min-height: 18px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+.keyboard-hint strong { color: var(--text); font-weight: 600; }
+.keyboard-hint-example .ML__latex { font-size: 12.5px; }
 
 .input-error {
   margin: 8px 0 0;
@@ -258,7 +289,14 @@ math-field.math-input:focus {
   font-size: 12.5px;
 }
 
-.object-list { flex: 1 1 auto; overflow-y: auto; padding: 6px 8px; }
+/* The editor (input + keyboard + hint) stays pinned; everything below it scrolls
+   as one region, so a taller keyboard can never push the result or comparison
+   cards out of reach (they used to be clipped by the pane's overflow:hidden). */
+.pane-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+
+/* the list is the primary content: a taller keyboard must never crush it
+   (a 31-key function group once squeezed this to 12 px, hiding every row) */
+.object-list { flex: 0 0 auto; min-height: 132px; padding: 6px 8px; }
 
 .object-row {
   display: grid;

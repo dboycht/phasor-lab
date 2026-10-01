@@ -129,6 +129,43 @@ describe('modulus and argument functions', () => {
     expectCx('\\atan2(1, 1)', 45, 0)
     expectCx('\\asin(0.5)', Math.PI / 6, 0, { angleUnit: 'rad' })
   })
+
+  it('logarithms, exponentials and powers', () => {
+    expectCx('\\ln(e)', 1, 0)
+    expectCx('\\log(1000)', 3, 0)
+    expectCx('\\lg(100)', 2, 0)
+    expectCx('\\log10(0.01)', -2, 0)
+    expectCx('\\log_2(8)', 3, 0)
+    expectCx('\\log2(8)', 3, 0)
+    expectCx('\\exp(0)', 1, 0)
+    expectCx('e^{0}', 1, 0)
+    expectCx('10^{3}', 1000, 0)
+    expectCx('2^{3}+1', 9, 0)
+  })
+
+  it('n-th roots, rounding and the parenthesis key', () => {
+    expectCx('\\sqrt{9}', 3, 0)
+    expectCx('\\sqrt[3]{8}', 2, 0)
+    expectCx('\\sqrt[3]{-8}', -2, 0)
+    expectCx('\\floor(2.7)', 2, 0)
+    expectCx('\\ceil(2.1)', 3, 0)
+    expectCx('\\round(2.5)', 3, 0)
+    // the parenthesis key inserts \left( ... \right)
+    expectCx('\\left(3+4j\\right)', 3, 4)
+    expectCx('2\\cdot\\left(3+4j\\right)', 6, 8)
+    expectCx('\\left(1+2\\right)\\cdot\\left(3+4\\right)', 21, 0)
+  })
+
+  it('the electrical helpers: power factor and frequency/angle conversion', () => {
+    expectCx('\\pf(60)', 0.5, 0)
+    expectCx('\\pf(60\\degree)', 0.5, 0)
+    expectCx('\\pf(0)', 1, 0)
+    expectCx('\\pf(90\\degree)', 0, 0)
+    expectCx('\\freq(\\om(50))', 50, 0)
+    expectCx('\\om(50)', 2 * Math.PI * 50, 0)
+    expectCx('\\todeg(\\pi)', 180, 0)
+    expectCx('\\torad(180)', Math.PI, 0)
+  })
 })
 
 describe('naming', () => {

@@ -28,7 +28,9 @@ Ordinary calculators cannot even type phasor notation; this one is built around 
 | --- | --- |
 | Four input forms | polar, rectangular, exponential, trigonometric (mix them freely in one expression) |
 | Named variables | definitions resolve in **any order** — `I=U/Z` may come before `U` and `Z` |
-| Functions | `\abs \arg \conj \Re \Im \polar \rms \peak \om` plus `sin cos tan asin atan2` and friends |
+| Auto-naming | an expression you did not name becomes `A`, then `B`, … `Z`, `A1`; a name is reused once its object is gone |
+| Functions | `\abs \arg \conj \Re \Im \polar \rms \peak \om \freq \pf \todeg \torad`, `sin cos tan`, `asin acos atan atan2`, `ln log log2 exp`, powers, n-th roots, `floor ceil round` |
+| Symbol keyboard | three labelled groups — symbols, units, functions — with the function group foldable; hovering a key explains it with a worked example |
 | Live diagram | grid, axes, coloured arrows, labels, phase-angle arc, optional sum polygon, PNG export |
 | Direct manipulation | drag a tip to edit the phasor, wheel to zoom, drag the background to pan, double-click to fit |
 | Edit again | double-click an object to load its own source back into the input box |
@@ -116,7 +118,13 @@ for confirmation the first time you run either file.
 | Any phasor from parts | `\polar(220, 30)` |
 | Angle of a ratio | `\atan2(y, x)` |
 | Amplitude ⇄ RMS | `\peak(x)`, `\rms(x)` |
-| Angular frequency | `\om(50)` = 314.16 |
+| Angular frequency | `\om(50)` = 314.16, and back with `\freq(314.16)` = 50 |
+| Power factor | `\pf(53.13\degree)` = 0.6 |
+| Explicit angle conversion | `\todeg(\pi)` = 180, `\torad(180)` = π |
+| Logarithms and powers | `\ln(x)`, `\log(x)` (base 10), `\log2(x)`, `\exp(x)`, `2^10`, `\sqrt[3]{8}` |
+| Rounding | `\floor(2.7)`, `\ceil(2.1)`, `\round(2.5)` |
+| Grouping | `\left( ... \right)` — the `( )` key inserts it with the caret inside |
+| Auto-named | `220\angle 30\degree` with no name becomes `A=220\angle 30\degree` |
 
 A trailing `\text{...}` group is a **display label**, not part of the number:
 `U=220\angle 0\degree\text{V}` shows as 220 V. Any label works (`\text{\Omega}`,
@@ -146,18 +154,21 @@ symbols.
 
 ## Verification
 
-`npm test` runs 208 unit tests: the LaTeX converter, the whole documented syntax
+`npm test` runs 219 unit tests: the LaTeX converter, the whole documented syntax
 table (four input forms, the angle model, naming, unit labels, the convention
-factor and twelve rejected inputs), the session model including undo/redo and
-project round-trips, the diagram geometry, the two-phasor comparison, and every
-shipped example (which is evaluated and compared against the textbook answer).
+factor and twelve rejected inputs), the session model including undo/redo,
+auto-naming and project round-trips, the diagram geometry, the two-phasor
+comparison, the keyboard tables, and every shipped example (which is evaluated
+and compared against the textbook answer).
 The UI itself is checked in a real browser: a headless-Chrome harness drives the
 page through its public handle, asserts on computation results and DOM state,
 samples canvas pixels to confirm the arrow and the sum polygon are drawn where
 they should be, and exercises drag-to-edit, zoom, pan, hide/delete, undo/redo,
 input recall, copy-to-clipboard, the example picker, the comparison card, the
-help dialog, a phone-width layout, reload persistence and project export/import
-(51 checks).
+keyboard groups and their hints, auto-naming, the help dialog, a phone-width
+layout, reload persistence and project export/import (63 checks). It also checks
+that nothing rendered from LaTeX leaks its own source, which is how several
+keyboard keys got caught showing `\abs(` instead of the symbol.
 
 ## Browser support
 

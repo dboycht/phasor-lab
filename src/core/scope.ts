@@ -73,6 +73,19 @@ export function buildScope(math: MathJsInstance, settings: Settings): Record<str
     },
     /** angular frequency from a frequency in hertz: om(f) = 2*pi*f */
     om: (f: unknown): number => 2 * Math.PI * num(f),
+    /** the same relation backwards: freq(w) = w / (2*pi) */
+    freq: (w: unknown): number => num(w) / (2 * Math.PI),
+    /**
+     * Power factor: the cosine of a phase angle given in the current angle unit
+     * (the converter turns an explicit `\degree` argument into radians first).
+     */
+    pf: (x: unknown): number => num(lib.cos?.(num(x))),
+
+    // --- explicit angle conversions, independent of the display unit ---
+    /** radians -> degrees */
+    todeg: (x: unknown): number => (num(x) * 180) / Math.PI,
+    /** degrees -> radians */
+    torad: (x: unknown): number => (num(x) * Math.PI) / 180,
   }
 }
 

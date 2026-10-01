@@ -36,8 +36,20 @@ export interface TransientResult {
 }
 
 export type SubmitResult =
-  | { ok: true; transient?: TransientResult; objects: PhasorObject[] }
+  | { ok: true; transient?: TransientResult; objects: PhasorObject[]; autoNamed?: string[] }
   | { ok: false; error: FieldError }
+
+/**
+ * Options for `submit`.
+ *
+ * `autoName` gives a name to statements the user did not name, so a bare
+ * expression becomes a real object (A, B, ... Z, A1, ...) instead of a
+ * throw-away result. The core keeps the transient behaviour by default: the UI
+ * asks for naming, the tests and the file format do not have to.
+ */
+export interface SubmitOptions {
+  autoName?: boolean
+}
 
 /** One saved project: the source of truth is the LaTeX the user typed. */
 export interface ProjectObject {
@@ -68,6 +80,21 @@ const HISTORY_LIMIT = 120
 
 let nextId = 1
 
+/**
+ * The next short name that is still free: A, B, ... Z, then A1, B1, ... Z1,
+ * then A2, ... (GeoGebra-style). `taken` must include every name already in use
+ * plus the ones handed out earlier in the same input line.
+ */
+export function nextFreeName(taken: ReadonlySet<string>): string {
+  for (let suffix = 0; suffix < 100; suffix++) {
+    for (let i = 0; i < 26; i++) {
+      const name = String.fromCharCode(65 + i) + (suffix === 0 ? '' : String(suffix))
+      if (!taken.has(name)) return name
+    }
+  }
+  return 'X'
+}
+
 export class Session {
   readonly math: MathJsInstance
   settings: Settings
@@ -87,7 +114,7 @@ export class Session {
   // ---------------------------------------------------------------- input
 
   /** Parse and evaluate one input line (may contain several statements). */
-  submit(latex: string): SubmitResult {
+  submit(latex: string, options: SubmitOptions = {}): SubmitResult {
     let statements
     try {
       statements = parseInput(latex, this.settings.angleUnit)
@@ -115,6 +142,8 @@ export class Session {
       error?: string
     }> = []
     let transient: TransientResult | undefined
+    const autoNamed: string[] = []
+    const taken = new Set(this.objects.map((o) => o.name))
 
     for (const st of statements) {
       let value: Cx | null = null
@@ -125,12 +154,21 @@ export class Session {
         evalError = messageOf(e)
       }
 
-      if (st.name) {
+      let name = st.name
+      if (!name && options.autoName) {
+        // A bare expression becomes a named object; `taken` also covers names
+        // handed out earlier in this same line.
+        name = nextFreeName(taken)
+        taken.add(name)
+        autoNamed.push(name)
+      }
+
+      if (name) {
         // A definition that does not resolve yet is still recorded: it may be
         // waiting for a variable that is typed on the next line.
         staged.push({
-          name: st.name,
-          latex: st.latex,
+          name,
+          latex: name === st.name ? st.latex : `${name}=${st.latex}`,
           body: st.body,
           expr: st.expr,
           value,
@@ -138,7 +176,7 @@ export class Session {
           phasorMarked: st.phasorMarked,
           error: evalError,
         })
-        if (value) this.seedScope(scope, st.name, value)
+        if (value) this.seedScope(scope, name, value)
       } else {
         if (!value) return { ok: false, error: { code: 'eval', detail: evalError ?? 'not-a-number' } }
         transient = { latex: st.latex, expr: st.expr, value, unit: st.unit }
@@ -182,7 +220,12 @@ export class Session {
 
     this.transient = transient
     this.rebuild()
-    return { ok: true, transient: this.transient, objects: this.objects }
+    return {
+      ok: true,
+      transient: this.transient,
+      objects: this.objects,
+      autoNamed: autoNamed.length > 0 ? autoNamed : undefined,
+    }
   }
 
   /** Re-evaluate one object's stored LaTeX (used after an inline edit). */

@@ -30,7 +30,14 @@ const STRINGS = {
   'input.restored': { zh: '已恢复上次的工程', en: 'Restored your last project' },
 
   'keyboard.title': { zh: '电工符号', en: 'Symbols' },
-  'keyboard.more': { zh: '更多', en: 'More' },
+  'keyboard.symbols': { zh: '符号', en: 'Symbols' },
+  'keyboard.units': { zh: '单位', en: 'Units' },
+  'keyboard.functions': { zh: '函数', en: 'Functions' },
+  'keyboard.hintIdle': {
+    zh: '把鼠标移到按键上查看说明与示例',
+    en: 'Hover a key to see what it does',
+  },
+  'keyboard.example': { zh: '例', en: 'e.g.' },
 
   'view.algebra': { zh: '代数区', en: 'Algebra' },
   'view.graphics': { zh: '图形区', en: 'Graphics' },
@@ -103,7 +110,8 @@ const STRINGS = {
   'help.trig': { zh: '三角：5(\\cos 53\\degree + j\\sin 53\\degree)', en: 'Trigonometric: 5(\\cos 53\\degree + j\\sin 53\\degree)' },
   'help.assign': { zh: '定义变量：U=220\\angle 0\\degree\\text{V}', en: 'Define: U=220\\angle 0\\degree\\text{V}' },
   'help.multi': { zh: '多语句用分号隔开：U=10;I=U/5', en: 'Separate statements with a semicolon: U=10;I=U/5' },
-  'help.funcs': { zh: '函数：\\abs \\arg \\conj \\Re \\Im \\polar \\rms \\peak \\om', en: 'Functions: \\abs \\arg \\conj \\Re \\Im \\polar \\rms \\peak \\om' },
+  'help.autoName': { zh: '自动命名：不写名字的表达式会依次记为 A、B、C…Z、A1；删掉对象后名字可再被使用', en: 'Auto-naming: an expression with no name becomes A, B, C ... Z, A1; a name frees up again when its object is deleted' },
+  'help.funcs': { zh: '函数：\\abs \\arg \\conj \\Re \\Im \\polar \\rms \\peak \\om 等（键盘"函数"区可查说明与示例）', en: 'Functions: \\abs \\arg \\conj \\Re \\Im \\polar \\rms \\peak \\om and more (see the Functions group on the keyboard)' },
   'help.units': { zh: '角度：\\degree 恒为度；裸数字按当前角度单位', en: 'Angles: \\degree is always degrees; a bare number follows the angle unit' },
   'help.labels': { zh: '单位标签写在末尾：U=220\\angle 0\\degree\\text{V}（任意文字都行，不参与计算）', en: 'A trailing \\text{...} is a label: U=220\\angle 0\\degree\\text{V} (any text, never computed)' },
   'help.edit': { zh: '改一个数：双击对象行，改完回车覆盖它', en: 'Change one number: double-click the row, edit, press Enter' },
@@ -120,6 +128,7 @@ const STRINGS = {
   'status.ready': { zh: '就绪', en: 'Ready' },
   'status.ok': { zh: '已计算', en: 'Computed' },
   'status.drag': { zh: '拖动箭头端点可改值：Shift 只改角度 · Alt 只改模', en: 'Drag an arrow tip to edit: Shift = angle only, Alt = magnitude only' },
+  'status.autoNamed': { zh: '已自动命名：', en: 'named automatically: ' },
 
   'err.empty': { zh: '输入为空', en: 'Empty input' },
   'err.unknown-command': { zh: '不认识的命令 {detail}', en: 'Unknown command {detail}' },

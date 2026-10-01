@@ -20,7 +20,7 @@ import { PhasorPanel } from './plot/panel'
 import type { DrawItem } from './plot/renderer'
 import { renderCompareCard, renderObjectList, renderResultCard, type CompareSelection } from './ui/algebra'
 import { buildKeyboard, type KeyDef } from './ui/keyboard'
-import { escapeHtml } from './ui/latexRender'
+import { escapeHtml, renderLatex } from './ui/latexRender'
 
 // --------------------------------------------------------------- persistence
 
@@ -102,6 +102,19 @@ const $ = <T extends HTMLElement>(id: string): T => {
 const session = new Session(loadSettings())
 let selectedId: number | undefined
 let statusKey: StringKey = 'status.ready'
+/** extra text after the status word, e.g. the name that was just handed out */
+let statusDetail: string | undefined
+
+/** Every status change goes through here so a stale detail cannot linger. */
+function setStatus(key: StringKey, detail?: string): void {
+  statusKey = key
+  statusDetail = detail
+}
+
+/** The status line: the state, then whatever is most useful to read next. */
+function statusText(): string {
+  return `${t(statusKey)} · ${statusDetail ?? t('status.drag')}`
+}
 /** which two objects the comparison card is looking at */
 let compareSelection: CompareSelection = {}
 
@@ -111,6 +124,7 @@ const objectList = $('object-list')
 const resultCard = $('result-card')
 const compareCard = $('compare-card')
 const keyboardHost = $('keyboard')
+const keyboardHint = $<HTMLParagraphElement>('keyboard-hint')
 const topbarControls = $('topbar-controls')
 const graphicsTools = $('graphics-tools')
 const statusEl = $<HTMLParagraphElement>('status')
@@ -186,7 +200,33 @@ function insertKey(key: KeyDef): void {
   input.focus()
 }
 
-buildKeyboard(keyboardHost, insertKey)
+/**
+ * The hint strip under the keyboard: what the key does, and a worked example.
+ * Hovering (or tabbing to) a key fills it in; leaving restores the idle prompt.
+ */
+function showKeyHint(key: KeyDef | null): void {
+  if (!key) {
+    keyboardHint.textContent = t('keyboard.hintIdle')
+    return
+  }
+  keyboardHint.replaceChildren()
+  const name = document.createElement('strong')
+  name.textContent = key.title ?? key.label
+  keyboardHint.append(name)
+  if (key.desc) {
+    const desc = document.createElement('span')
+    desc.textContent = ` — ${key.desc}`
+    keyboardHint.append(desc)
+  }
+  if (key.example) {
+    const example = document.createElement('span')
+    example.className = 'keyboard-hint-example'
+    example.innerHTML = ` ${t('keyboard.example')} ${renderLatex(key.example)}`
+    keyboardHint.append(example)
+  }
+}
+
+buildKeyboard(keyboardHost, insertKey, showKeyHint)
 
 // -------------------------------------------------------------------- helpers
 
@@ -237,7 +277,10 @@ function submitInput(): void {
     showInputError(t('err.empty'))
     return
   }
-  const result = session.submit(latex)
+  // A bare expression is given a name instead of becoming a throw-away result,
+  // so it lands in the list, gets its own colour in the diagram and can be
+  // reused by later expressions (GeoGebra-style: A, B, ... Z, A1, ...).
+  const result = session.submit(latex, { autoName: true })
   if (!result.ok) {
     showInputError(describeError(result.error))
     return
@@ -248,7 +291,7 @@ function submitInput(): void {
   rememberInput(latex)
   selectedId = session.objects.find((o) => !o.error)?.id ?? session.objects[0]?.id
   if (result.transient) selectedId = undefined
-  statusKey = 'status.ok'
+  setStatus('status.ok', result.autoNamed?.length ? `${t('status.autoNamed')} ${result.autoNamed.join(', ')}` : undefined)
   persist()
   render()
   input.focus()
@@ -263,7 +306,7 @@ function persist(): void {
 function doUndo(): void {
   if (!session.undo()) return
   selectedId = selectedId !== undefined && session.byId(selectedId) ? selectedId : session.objects[0]?.id
-  statusKey = 'status.ready'
+  setStatus('status.ready')
   persist()
   rebuildUI()
 }
@@ -271,7 +314,7 @@ function doUndo(): void {
 function doRedo(): void {
   if (!session.redo()) return
   selectedId = session.byId(selectedId ?? -1) ? selectedId : session.objects[0]?.id
-  statusKey = 'status.ready'
+  setStatus('status.ready')
   persist()
   rebuildUI()
 }
@@ -294,13 +337,13 @@ function showInputError(message: string | undefined): void {
   }
   inputError.hidden = false
   inputError.textContent = message
-  statusKey = 'status.ready'
+  setStatus('status.ready')
 }
 
 function flashStatus(key: StringKey): void {
   statusEl.textContent = t(key)
   window.setTimeout(() => {
-    statusEl.textContent = `${t(statusKey)} · ${t('status.drag')}`
+    statusEl.textContent = statusText()
   }, 2500)
 }
 
@@ -369,7 +412,7 @@ function loadExample(id: string): void {
   if (example.showSum) panel.showSum = true
   selectedId = session.objects[session.objects.length - 1]?.id
   showInputError(undefined)
-  statusKey = 'status.ok'
+  setStatus('status.ok')
   persist()
   rebuildUI()
 }
@@ -425,7 +468,7 @@ function render(): void {
     compareSelection = next
     render()
   }, copyResult)
-  statusEl.textContent = `${t(statusKey)} · ${t('status.drag')}`
+  statusEl.textContent = statusText()
   ;($('btn-undo') as HTMLButtonElement).disabled = !session.canUndo
   ;($('btn-redo') as HTMLButtonElement).disabled = !session.canRedo
   panel.refit()
@@ -445,6 +488,7 @@ function renderStaticText(): void {
   $('btn-export').title = t('input.export')
   $('btn-import').title = t('input.import')
   input.placeholder = t('input.placeholder')
+  showKeyHint(null)
   $('help-title').textContent = t('help.title')
   $('help-close').textContent = t('help.close')
 
@@ -452,7 +496,7 @@ function renderStaticText(): void {
   list.replaceChildren()
   const keys: StringKey[] = [
     'help.polar', 'help.rect', 'help.exp', 'help.trig', 'help.assign', 'help.multi',
-    'help.funcs', 'help.units', 'help.labels',
+    'help.funcs', 'help.units', 'help.labels', 'help.autoName',
     'help.edit', 'help.drag', 'help.view', 'help.history', 'help.copy',
     'help.compare', 'help.examples', 'help.files', 'help.undo',
   ]
@@ -621,7 +665,7 @@ function rebuildUI(): void {
   buildTopbar()
   buildGraphicsTools()
   buildExamples()
-  buildKeyboard(keyboardHost, insertKey)
+  buildKeyboard(keyboardHost, insertKey, showKeyHint)
   render()
 }
 
@@ -748,7 +792,7 @@ const stored = loadStoredProject()
 if (stored && session.loadProject(stored) === undefined) {
   session.forgetHistory()
   selectedId = session.objects[0]?.id
-  statusKey = 'input.restored'
+  setStatus('input.restored')
 }
 
 rebuildUI()
