@@ -44,6 +44,7 @@ Ordinary calculators cannot even type phasor notation; this one is built around 
 | Angle units | degrees (default) or radians, switchable at any time |
 | Phasor convention | RMS (default) or amplitude, with an explicit *convert all* action |
 | Bilingual UI | 中文 / English, switchable at runtime |
+| About dialog | the `ⓘ` button shows the version, the repository and what the app is built on |
 | Engine | [mathjs](https://mathjs.org) for evaluation, [MathLive](https://mathlive.io) for input |
 
 ### Drag to edit
@@ -175,7 +176,7 @@ samples canvas pixels to confirm the arrow and the sum polygon are drawn where
 they should be, and exercises drag-to-edit, zoom, pan, hide/delete, undo/redo,
 input recall, copy-to-clipboard, the example picker, the comparison card, the
 keyboard groups and their hints, auto-naming, the help dialog, a phone-width
-layout, reload persistence and project export/import (74 checks). It also checks
+layout, reload persistence and project export/import (76 checks). It also checks
 that nothing rendered from LaTeX leaks its own source - across the key labels,
 the hint examples, the algebra rows and the input box itself - and that hovering
 every key moves nothing on the page, which is how several keyboard keys got

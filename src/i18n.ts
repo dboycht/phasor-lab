@@ -126,6 +126,24 @@ const STRINGS = {
   'help.undo': { zh: '撤销重做：Ctrl+Z / Ctrl+Shift+Z，或代数区左上角按钮', en: 'Undo/redo: Ctrl+Z and Ctrl+Shift+Z, or the buttons in the algebra header' },
   'help.close': { zh: '关闭', en: 'Close' },
 
+  'about.title': { zh: '关于', en: 'About' },
+  'about.close': { zh: '关闭', en: 'Close' },
+  'about.tagline': {
+    zh: '面向交流电路分析的相量与复数计算器：四种输入形式、实时相量图、求模与辐角。',
+    en: 'Phasor and complex arithmetic for AC circuits: four input forms, a live phasor diagram, modulus and argument.',
+  },
+  'about.version': { zh: '版本 {version}', en: 'Version {version}' },
+  'about.repo': { zh: '源码与问题反馈', en: 'Source and issues' },
+  'about.license': { zh: '许可证', en: 'License' },
+  'about.engine': {
+    zh: '计算内核 mathjs（Apache-2.0）· 输入与排版 MathLive（MIT）· 字体 KaTeX（MIT）',
+    en: 'mathjs (Apache-2.0) does the arithmetic, MathLive (MIT) the input and typesetting, KaTeX (MIT) the fonts.',
+  },
+  'about.storage': {
+    zh: '所有数据只保存在本机浏览器里，不会上传到任何服务器。',
+    en: 'Everything stays in this browser; nothing is uploaded anywhere.',
+  },
+
   'status.ready': { zh: '就绪', en: 'Ready' },
   'status.ok': { zh: '已计算', en: 'Computed' },
   'status.drag': { zh: '拖动箭头端点可改值：Shift 只改角度 · Alt 只改模', en: 'Drag an arrow tip to edit: Shift = angle only, Alt = magnitude only' },

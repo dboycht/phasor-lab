@@ -130,6 +130,10 @@ const graphicsTools = $('graphics-tools')
 const statusEl = $<HTMLParagraphElement>('status')
 const workspace = $('workspace')
 const helpDialog = $<HTMLDialogElement>('help-dialog')
+const aboutDialog = $<HTMLDialogElement>('about-dialog')
+
+/** Shown in the About dialog; the desktop build links nowhere, so it is text. */
+const REPO_URL = 'https://github.com/dboycht/phasor-lab'
 
 // ------------------------------------------------------------------- mathfield
 
@@ -537,6 +541,43 @@ function renderStaticText(): void {
     li.innerHTML = `${escapeHtml(label ?? '')}: <code>${escapeHtml(example ?? '')}</code>`
     list.append(li)
   }
+
+  renderAbout()
+}
+
+/** The About dialog: name, version, where the code lives, what it is built on. */
+function renderAbout(): void {
+  $('about-title').textContent = t('about.title')
+  $('about-close').textContent = t('about.close')
+  $('btn-about').title = t('about.title')
+
+  const body = $('about-body')
+  body.replaceChildren()
+
+  const para = (text: string, cls = ''): HTMLParagraphElement => {
+    const p = document.createElement('p')
+    if (cls !== '') p.className = cls
+    p.textContent = text
+    return p
+  }
+  const row = (label: string, value: string): HTMLParagraphElement => {
+    const p = document.createElement('p')
+    p.className = 'about-row'
+    const strong = document.createElement('strong')
+    strong.textContent = label
+    const span = document.createElement('span')
+    span.className = 'about-mono'
+    span.textContent = value
+    p.append(strong, span)
+    return p
+  }
+
+  body.append(para(t('about.tagline'), 'about-tagline'))
+  body.append(para(t('about.version', { version: __APP_VERSION__ }), 'about-version'))
+  body.append(row(t('about.repo'), REPO_URL))
+  body.append(row(t('about.license'), 'MIT'))
+  body.append(para(t('about.engine'), 'about-credit'))
+  body.append(para(t('about.storage'), 'about-credit'))
 }
 
 // ------------------------------------------------------------------- topbar UI
@@ -722,6 +763,8 @@ $('examples').addEventListener('change', (e) => {
 
 $('btn-help').addEventListener('click', () => helpDialog.showModal())
 $('help-close').addEventListener('click', () => helpDialog.close())
+$('btn-about').addEventListener('click', () => aboutDialog.showModal())
+$('about-close').addEventListener('click', () => aboutDialog.close())
 
 // Ctrl+Z / Ctrl+Shift+Z (and Ctrl+Y) work anywhere on the page
 window.addEventListener('keydown', (e) => {

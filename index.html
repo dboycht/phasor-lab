@@ -31,6 +31,7 @@
               <button type="button" class="btn ghost" id="btn-export">⬇</button>
               <button type="button" class="btn ghost" id="btn-import">⬆</button>
               <button type="button" class="btn ghost" id="btn-help">?</button>
+              <button type="button" class="btn ghost" id="btn-about">ⓘ</button>
               <button type="button" class="btn ghost" id="btn-clear">清空</button>
             </div>
           </div>
@@ -68,6 +69,12 @@
         <h2 id="help-title">语法速查</h2>
         <ul id="help-list"></ul>
         <form method="dialog"><button class="btn primary" id="help-close">关闭</button></form>
+      </dialog>
+
+      <dialog class="help-dialog about-dialog" id="about-dialog">
+        <h2 id="about-title">关于</h2>
+        <div id="about-body"></div>
+        <form method="dialog"><button class="btn primary" id="about-close">关闭</button></form>
       </dialog>
     </div>
     <script type="module" src="/src/main.ts"></script>
