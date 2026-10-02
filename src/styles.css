@@ -836,6 +836,24 @@ math-field.math-input:focus {
   .settings-dialog .dialog-body { max-height: none; }
   .drop-card { margin: 12px; }
 
+  /* On a phone the field's own keyboard toggle is hidden: MathLive's keyboard
+     brings its own layout (no 函数 page, and its pages are different heights, so
+     the pane jumped when switching 123/abc/αβγ). Our keyboard below the field
+     already carries every symbol, unit and function, and we control its height. */
+  math-field::part(virtual-keyboard-toggle) { display: none; }
+
+  /* A fixed height is what stops the layout from moving: folding a group, or
+     scrolling the keys, no longer changes how tall the keyboard is. */
+  .keyboard {
+    height: 38vh;
+    height: 38dvh;
+    max-height: 340px;
+    min-height: 190px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .keyboard-hint { height: auto; min-height: 40px; }
+
   /* project export/import also live in the ⚙ dialog, so the phone header keeps
      only what has no other home - otherwise the actions wrap into two rows */
   .pane-algebra .pane-actions #btn-export,
