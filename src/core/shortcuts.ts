@@ -269,11 +269,6 @@ export function checkBinding(
   return { ok: true }
 }
 
-/** Back to the table defaults (used by the settings dialog's reset button). */
-export function clearedBindings(): ShortcutBindings {
-  return {}
-}
-
 /** The action that inserts exactly this string, if any - used for the key badges. */
 export function actionByInsert(insert: string): ShortcutAction | undefined {
   return SHORTCUT_ACTIONS.find((a) => a.insert === insert)
