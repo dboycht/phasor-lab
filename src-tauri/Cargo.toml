@@ -1,6 +1,6 @@
 [package]
 name = "phasor-lab"
-version = "1.0.4"
+version = "1.0.5"
 description = "Phasor calculator for AC circuits: multi-form input, live phasor diagram"
 authors = ["dboycht"]
 edition = "2021"

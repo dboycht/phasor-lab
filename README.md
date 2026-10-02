@@ -33,6 +33,7 @@ Ordinary calculators cannot even type phasor notation; this one is built around 
 | Functions | `\abs \arg \conj \Re \Im \polar \rms \peak \om \freq \pf \todeg \torad`, `sin cos tan`, `asin acos atan atan2`, `ln log log2 exp`, powers, n-th roots, `floor ceil round` |
 | Symbol keyboard | three labelled groups — symbols, units, functions — with the function group foldable; hovering a key explains it with a worked example |
 | Keyboard shortcuts | `Ctrl+Alt+R` root, `A` angle ∠, `D` degree, `F` fraction, `J` imaginary unit, `P` π, `W` ω, `E` e^x, `B` brackets, `S` subscript, `C` conjugate, `M` modulus, `G` argument, `T` unit label — they type into whichever input box has focus. Each key shows its letter in the corner, and hovering it spells the whole combination out |
+| Typography | every value - the numbers under each formula, the result card, the status line and the diagram's ticks and labels - is set in the same LaTeX face the formulas use, so the notation matches. Buttons, menus and hints stay in the UI sans face, and the diagram's tick/label face is shared by the canvas and the SVG export |
 | Motion | one restrained vocabulary: dialogs fade and rise 6px in 160ms and fade out in 120ms, new rows rise in, deleted rows sink away, keys flash on press. `prefers-reduced-motion` switches all of it off |
 | Reorder the list | drag an object row up or down to change its place (or select it and press Alt+↑/↓). The order is what the sum polygon chains in, and it is saved with the project |
 | Rebindable shortcuts | ⚙ Settings lists every action with its combination: rebind it (press the new one), switch one off, reset one or all back to the defaults. Bindings travel in the project file and can be undone |
@@ -206,7 +207,7 @@ samples canvas pixels to confirm the arrow and the sum polygon are drawn where
 they should be, and exercises drag-to-edit, zoom, pan, hide/delete, undo/redo,
 input recall, copy-to-clipboard, the example picker, the comparison card, the
 keyboard groups and their hints, auto-naming, the help dialog, a phone-width
-layout, reload persistence and project export/import (118 checks). It also checks
+layout, reload persistence and project export/import (122 checks). It also checks
 that nothing rendered from LaTeX leaks its own source - across the key labels,
 the hint examples, the algebra rows and the input box itself - and that hovering
 every key moves nothing on the page, which is how several keyboard keys got

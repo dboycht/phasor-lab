@@ -15,8 +15,15 @@
   --danger: #dc2626;
   --radius: 8px;
   --shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 14px rgba(15, 23, 42, 0.06);
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --mono: KaTeX_Typewriter, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  /*
+   * The LaTeX face, for values rather than for prose: the digits, units and
+   * expressions in the lists, the result card and the diagram match the maths
+   * above them. KaTeX ships no CJK glyphs, so Chinese simply falls back to the
+   * system font - which is why this is applied per element and never globally.
+   */
+  --math: KaTeX_Main, KaTeX_Math, "Times New Roman", Times, serif;
   color-scheme: light;
 }
 
@@ -346,7 +353,7 @@ math-field.math-input:focus {
 .swatch { width: 10px; height: 10px; border-radius: 3px; background: var(--accent); }
 .object-main { min-width: 0; overflow: hidden; }
 .object-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.object-value { font-size: 12.5px; color: var(--text-dim); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.object-value { font-size: 12.5px; color: var(--text-dim); font-family: var(--math); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .object-value.err { color: var(--danger); font-family: var(--sans); }
 .object-row .ML__latex { font-size: 14px; }
 .object-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.12s ease; }
@@ -383,8 +390,8 @@ math-field.math-input:focus {
 .result-card h3 { margin: 0 0 7px; font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 650; }
 .result-grid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 12px; font-size: 12.5px; }
 .result-grid dt { color: var(--text-dim); white-space: nowrap; }
-.result-grid dd { margin: 0; font-family: var(--mono); overflow-wrap: anywhere; }
-.result-grid dd .ML__latex { font-family: var(--sans); }
+.result-grid dd { margin: 0; font-family: var(--math); overflow-wrap: anywhere; }
+.result-grid dd .ML__latex { font-family: var(--math); }
 .result-grid dd.copyable { cursor: pointer; border-radius: 4px; padding: 0 3px; margin-left: -3px; }
 .result-grid dd.copyable:hover { background: var(--accent-soft); }
 .result-grid dd.copied { background: #d9f5e3; transition: background 0.2s ease; }
@@ -407,6 +414,7 @@ math-field.math-input:focus {
   background: var(--panel-alt);
   flex: 0 0 auto;
   min-height: 26px;
+  font-family: var(--math);
 }
 
 /* ----------------------------------------------------------------- motion */
@@ -567,7 +575,7 @@ math-field.math-input:focus {
 .about-dialog { max-width: 430px; }
 .about-dialog p { margin: 8px 0; font-size: 13px; line-height: 1.6; }
 .about-tagline { color: var(--text); }
-.about-version { color: var(--text-dim); font-family: var(--mono); font-size: 12.5px; }
+.about-version { color: var(--text-dim); font-family: var(--math); font-size: 12.5px; }
 .about-row { display: flex; gap: 8px; align-items: baseline; }
 .about-row strong { flex: 0 0 auto; color: var(--text-dim); font-weight: 600; }
 .about-mono { font-family: var(--mono); font-size: 12.5px; overflow-wrap: anywhere; }

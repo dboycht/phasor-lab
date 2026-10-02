@@ -36,6 +36,7 @@ import { getLang, setLang, t, translateEvalError, type Lang, type StringKey } fr
 import { sumOf } from './plot/geometry'
 import { PhasorPanel } from './plot/panel'
 import { drawToSvg, type DrawItem } from './plot/renderer'
+import { FONT_STACK } from './plot/surface'
 import { entranceState, renderCompareCard, renderObjectList, renderResultCard, type CompareSelection } from './ui/algebra'
 import { buildKeyboard, type KeyDef } from './ui/keyboard'
 import { escapeHtml, renderLatex } from './ui/latexRender'
@@ -959,7 +960,8 @@ const measureCanvas = document.createElement('canvas').getContext('2d')
 
 function measureText(text: string, size: number, bold: boolean): number {
   if (!measureCanvas) return 0.6 * size * text.length
-  measureCanvas.font = `${bold ? 'bold ' : ''}${size}px ui-sans-serif, system-ui, sans-serif`
+  // the same stack the diagram draws with, so exported SVG text lines up
+  measureCanvas.font = `${bold ? 'bold ' : ''}${size}px ${FONT_STACK}`
   return measureCanvas.measureText(text).width
 }
 
@@ -1534,6 +1536,10 @@ if (stored && session.loadProject(stored) === undefined) {
   equationInput.value = stored.equation ?? ''
   setStatus('input.restored')
 }
+
+// The diagram draws its ticks and labels in the LaTeX face; load it up front so
+// the first canvas paint does not silently fall back to Times.
+void document.fonts?.load(`12px ${FONT_STACK}`).catch(() => undefined)
 
 rebuildUI()
 syncInputEmpty()

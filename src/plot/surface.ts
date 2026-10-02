@@ -37,8 +37,16 @@ export interface Surface {
   measure(value: string, size: number, bold?: boolean): number
 }
 
-/** The one font stack the whole app draws with. */
-export const FONT_STACK = 'ui-sans-serif, system-ui, sans-serif'
+/**
+ * The one font stack the whole app draws with: tick numbers, phasor labels and
+ * the sum label are set in the same LaTeX face the formulas are rendered in, so
+ * the diagram's notation matches the algebra view. Canvas and SVG share this
+ * single constant, which is why an exported file cannot drift from the screen.
+ *
+ * (KaTeX ships no CJK glyphs, but the diagram draws no Chinese, so that never
+ * comes up here. An SVG opened on a machine without KaTeX falls back to Times.)
+ */
+export const FONT_STACK = "KaTeX_Main, KaTeX_Math, 'Times New Roman', Times, serif"
 
 /**
  * Cap style used for every stroke. The old canvas code set `lineCap = 'round'`

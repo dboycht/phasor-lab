@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { draw, drawToSvg, type DrawItem, type DrawState } from '../src/plot/renderer'
-import { canvasSurface, svgSurface } from '../src/plot/surface'
+import { canvasSurface, svgSurface, FONT_STACK } from '../src/plot/surface'
 import { worldToScreen, type View } from '../src/plot/geometry'
 
 const VIEW: View = { ox: 200, oy: 150, scale: 2 }
@@ -353,10 +353,12 @@ describe('canvas surface: same geometry as the svg', () => {
     const { ctx, calls } = fakeCtx()
     const s = canvasSurface(ctx, 400, 300)
     s.measure('U1', 12, false)
-    expect(lastSet(calls, 'font')).toBe('12px ui-sans-serif, system-ui, sans-serif')
+    // the stack is imported rather than spelled out: the diagram draws in the
+    // same LaTeX face the formulas use, and this test must not pin a stale one
+    expect(lastSet(calls, 'font')).toBe(`12px ${FONT_STACK}`)
     calls.length = 0
     s.measure('U1', 12, true)
-    expect(lastSet(calls, 'font')).toBe('bold 12px ui-sans-serif, system-ui, sans-serif')
+    expect(lastSet(calls, 'font')).toBe(`bold 12px ${FONT_STACK}`)
   })
 
   it('uses the same measure hook for the label backdrop width', () => {
