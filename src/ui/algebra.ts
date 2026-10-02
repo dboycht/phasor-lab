@@ -128,6 +128,9 @@ function buildRow(
 
   const eye = document.createElement('button')
   eye.type = 'button'
+  // a stable hook: checks and tests must not depend on button order, which the
+  // reorder buttons above already changed once
+  eye.className = 'row-eye'
   eye.title = o.visible ? t('object.hide') : t('object.show')
   eye.textContent = o.visible ? '👁' : '🚫'
   eye.addEventListener('click', (e) => { e.stopPropagation(); cb.onToggleVisible(o.id) })
@@ -146,7 +149,34 @@ function buildRow(
     window.setTimeout(() => cb.onDelete(o.id), LEAVE_MS)
   })
 
-  actions.append(eye, del)
+  /*
+   * Reordering by dragging needs a mouse, so the phone layout shows two buttons
+   * instead (CSS reveals `.row-move` only there). They aim at the same insertion
+   * points the drag and Alt+Arrow use: one place up is `index - 1`, and one
+   * place down has to aim *past* the next row (`index + 2`), because `move`
+   * resolves an insertion point against the list as it is now.
+   */
+  const up = document.createElement('button')
+  up.type = 'button'
+  up.className = 'row-move'
+  up.title = t('object.moveUp')
+  up.textContent = '↑'
+  up.addEventListener('click', (e) => {
+    e.stopPropagation()
+    cb.onMove(o.id, index - 1)
+  })
+
+  const down = document.createElement('button')
+  down.type = 'button'
+  down.className = 'row-move'
+  down.title = t('object.moveDown')
+  down.textContent = '↓'
+  down.addEventListener('click', (e) => {
+    e.stopPropagation()
+    cb.onMove(o.id, index + 2)
+  })
+
+  actions.append(up, down, eye, del)
   row.append(swatch, main, actions)
   row.addEventListener('click', () => cb.onSelect(o.id))
   row.title = `${t('input.editHint')} · ${t('object.dragHint')}`

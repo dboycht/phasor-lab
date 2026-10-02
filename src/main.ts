@@ -627,6 +627,12 @@ function renderStaticText(): void {
 
   renderAbout()
 
+  // the phone tabs
+  for (const button of document.querySelectorAll<HTMLElement>('#tab-bar .tab')) {
+    const name = button.dataset.tab as StringKey | undefined
+    if (name) button.textContent = t(`tab.${name}` as StringKey)
+  }
+
   // the equation card
   $('equation-title').textContent = t('equation.title')
   $('btn-solve').textContent = t('equation.solve')
@@ -1451,42 +1457,175 @@ csvInput.addEventListener('change', () => {
   })()
 })
 
-// draggable splitter between the two panes
+// draggable splitter between the two panes: a column divider on a wide screen,
+// the chart/content height on a phone
 ;(() => {
   const splitter = $('splitter')
-  let startX = 0
-  let startWidth = 0
+  let start = 0
+  let startSize = 0
   let dragging = false
+
+  /** The phone layout is the only one that leaves the splitter visible. */
+  const isStacked = (): boolean => window.matchMedia('(max-width: 640px)').matches
 
   const onMove = (e: PointerEvent): void => {
     if (!dragging) return
-    const dx = e.clientX - startX
-    const width = Math.max(280, Math.min(startWidth + dx, window.innerWidth - 320))
+    if (isStacked()) {
+      const dy = e.clientY - start
+      const height = Math.max(140, Math.min(startSize + dy, window.innerHeight - 220))
+      document.documentElement.style.setProperty('--mobile-chart', `${Math.round(height)}px`)
+      panel.resize()
+      return
+    }
+    const dx = e.clientX - start
+    const width = Math.max(280, Math.min(startSize + dx, window.innerWidth - 320))
     workspace.style.gridTemplateColumns = `${width}px 6px minmax(0, 1fr)`
   }
+
   const onUp = (e: PointerEvent): void => {
     dragging = false
     splitter.releasePointerCapture(e.pointerId)
     panel.resize()
   }
 
+  /** Back to the default share of the height. */
+  const resetChartShare = (): void => {
+    document.documentElement.style.removeProperty('--mobile-chart')
+    panel.resize()
+  }
+
   splitter.addEventListener('pointerdown', (e) => {
     dragging = true
-    startX = e.clientX
-    const pane = document.querySelector('.pane-algebra') as HTMLElement | null
-    startWidth = pane ? pane.getBoundingClientRect().width : 360
+    if (isStacked()) {
+      start = e.clientY
+      const graphics = document.querySelector('.pane-graphics') as HTMLElement | null
+      startSize = graphics ? graphics.getBoundingClientRect().height : Math.round(window.innerHeight * 0.46)
+    } else {
+      start = e.clientX
+      const pane = document.querySelector('.pane-algebra') as HTMLElement | null
+      startSize = pane ? pane.getBoundingClientRect().width : 360
+    }
     splitter.setPointerCapture(e.pointerId)
     e.preventDefault()
   })
   splitter.addEventListener('pointermove', onMove)
   splitter.addEventListener('pointerup', onUp)
   splitter.addEventListener('pointercancel', onUp)
+  splitter.addEventListener('dblclick', resetChartShare)
+  // keyboard access on a desktop: arrows nudge, Home restores the default
+  splitter.addEventListener('keydown', (e) => {
+    if (!isStacked()) return
+    const step = e.key === 'ArrowUp' ? -24 : e.key === 'ArrowDown' ? 24 : 0
+    if (step === 0) {
+      if (e.key === 'Home') resetChartShare()
+      return
+    }
+    e.preventDefault()
+    const graphics = document.querySelector('.pane-graphics') as HTMLElement | null
+    const current = graphics ? graphics.getBoundingClientRect().height : window.innerHeight * 0.46
+    const height = Math.max(140, Math.min(current + step, window.innerHeight - 220))
+    document.documentElement.style.setProperty('--mobile-chart', `${Math.round(height)}px`)
+    panel.resize()
+  })
+})()
+
+// ---------------------------------------------------------------- phone tabs
+
+type TabName = 'input' | 'formula' | 'result'
+const TABS: TabName[] = ['input', 'formula', 'result']
+
+/** true while the phone layout is in charge (the tab bar is visible there) */
+function isPhoneLayout(): boolean {
+  return window.matchMedia('(max-width: 640px)').matches
+}
+
+function tabPanels(): HTMLElement[] {
+  return [...document.querySelectorAll<HTMLElement>('.tab-panel')]
+}
+
+function activeTab(): TabName {
+  const current = tabPanels().find((p) => p.hasAttribute('data-active'))
+  const name = current?.dataset.tab as TabName | undefined
+  return name ?? 'input'
+}
+
+/**
+ * Show one tab. `dir` only drives the little slide-in cue, so a click (no
+ * direction) and a swipe (a direction) can share the same code path.
+ */
+function showTab(name: TabName, dir?: 'next' | 'prev'): void {
+  for (const panel of tabPanels()) {
+    const active = panel.dataset.tab === name
+    panel.toggleAttribute('data-active', active)
+    if (active && dir) panel.dataset.dir = dir
+    else delete panel.dataset.dir
+  }
+  for (const button of document.querySelectorAll<HTMLElement>('#tab-bar .tab')) {
+    button.setAttribute('aria-selected', String(button.dataset.tab === name))
+  }
+  // the canvas was hidden or resized by the switch
+  panel.resize()
+}
+
+/** Tabs are only reachable in the phone layout; on a wide screen all show at once. */
+function stepTab(delta: number, dir: 'next' | 'prev'): void {
+  if (!isPhoneLayout()) return
+  const index = TABS.indexOf(activeTab())
+  const next = TABS[Math.max(0, Math.min(TABS.length - 1, index + delta))]
+  if (next) showTab(next, dir)
+}
+
+$('tab-bar').addEventListener('click', (e) => {
+  const button = (e.target as HTMLElement).closest<HTMLElement>('.tab')
+  const name = button?.dataset.tab as TabName | undefined
+  if (!name) return
+  const from = TABS.indexOf(activeTab())
+  showTab(name, TABS.indexOf(name) > from ? 'next' : 'prev')
+})
+
+// horizontal swipe on the tab content switches tabs, vertical scroll still works
+;(() => {
+  const view = $('tab-view')
+  let startX = 0
+  let startY = 0
+  let tracking = false
+  let fired = false
+
+  view.addEventListener('pointerdown', (e) => {
+    if (!isPhoneLayout() || e.pointerType === 'mouse') return
+    tracking = true
+    fired = false
+    startX = e.clientX
+    startY = e.clientY
+  })
+
+  view.addEventListener('pointermove', (e) => {
+    if (!tracking || fired) return
+    const dx = e.clientX - startX
+    const dy = e.clientY - startY
+    // a swipe is mostly horizontal; anything else is a scroll and is left alone
+    if (Math.abs(dx) < 44 || Math.abs(dx) < Math.abs(dy) * 1.4) return
+    fired = true
+    if (dx < 0) stepTab(1, 'next')
+    else stepTab(-1, 'prev')
+  })
+
+  const stop = (): void => {
+    tracking = false
+  }
+  view.addEventListener('pointerup', stop)
+  view.addEventListener('pointercancel', stop)
+  view.addEventListener('pointerleave', stop)
 })()
 
 const observer = new ResizeObserver(() => panel.resize())
 observer.observe($('canvas').parentElement as HTMLElement)
 
-window.addEventListener('resize', () => panel.resize())
+window.addEventListener('resize', () => {
+  // coming back to a wide screen must not leave a hidden tab in charge
+  if (!isPhoneLayout()) showTab(activeTab())
+  panel.resize()
+})
 
 // ---------------------------------------------------------------- shortcuts
 

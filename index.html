@@ -39,25 +39,44 @@
           <input type="file" id="file-input" accept=".json,application/json" hidden />
           <input type="file" id="csv-input" accept=".csv,text/csv" hidden />
 
-          <div class="input-area">
-            <math-field id="input" class="math-input" aria-label="phasor input"></math-field>
-            <div class="keyboard" id="keyboard"></div>
-            <p class="keyboard-hint" id="keyboard-hint"></p>
-            <p class="input-error" id="input-error" hidden></p>
-          </div>
+          <!-- Phone layout: the algebra pane becomes three swipeable tabs. On a
+               wide screen the tab bar is hidden and `.tab-view` / `.tab-panel`
+               are `display: contents`, so the markup below behaves exactly like
+               the flat layout it replaced. -->
+          <nav class="tab-bar" id="tab-bar" role="tablist">
+            <button type="button" class="tab" role="tab" data-tab="input" aria-selected="true">输入</button>
+            <button type="button" class="tab" role="tab" data-tab="formula" aria-selected="false">公式</button>
+            <button type="button" class="tab" role="tab" data-tab="result" aria-selected="false">结果</button>
+          </nav>
 
-          <div class="pane-body" id="pane-body">
-            <div class="object-list" id="object-list"></div>
-            <div class="result-card" id="result-card"></div>
-            <div class="result-card" id="compare-card"></div>
-            <div class="result-card equation-card" id="equation-card">
-              <h3 id="equation-title">方程</h3>
-              <div class="equation-row">
-                <math-field id="equation-input" class="math-input" aria-label="equation"></math-field>
-                <button type="button" class="btn primary" id="btn-solve">求解</button>
+          <div class="tab-view" id="tab-view">
+            <section class="tab-panel" data-tab="input" data-active>
+              <div class="input-area">
+                <math-field id="input" class="math-input" aria-label="phasor input"></math-field>
+                <div class="keyboard" id="keyboard"></div>
+                <p class="keyboard-hint" id="keyboard-hint"></p>
+                <p class="input-error" id="input-error" hidden></p>
               </div>
-              <p class="card-hint" id="equation-hint"></p>
-              <div class="equation-result" id="equation-result"></div>
+            </section>
+
+            <div class="pane-body" id="pane-body">
+              <section class="tab-panel" data-tab="formula">
+                <div class="object-list" id="object-list"></div>
+              </section>
+
+              <section class="tab-panel" data-tab="result">
+                <div class="result-card" id="result-card"></div>
+                <div class="result-card" id="compare-card"></div>
+                <div class="result-card equation-card" id="equation-card">
+                  <h3 id="equation-title">方程</h3>
+                  <div class="equation-row">
+                    <math-field id="equation-input" class="math-input" aria-label="equation"></math-field>
+                    <button type="button" class="btn primary" id="btn-solve">求解</button>
+                  </div>
+                  <p class="card-hint" id="equation-hint"></p>
+                  <div class="equation-result" id="equation-result"></div>
+                </div>
+              </section>
             </div>
           </div>
         </section>

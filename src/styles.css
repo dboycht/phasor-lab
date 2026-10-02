@@ -729,8 +729,127 @@ math-field.math-input:focus {
 
 /* ------------------------------------------------------------- responsive */
 
+/*
+ * Wide screen: the two panes sit side by side and the tab markup is invisible -
+ * `.tab-view` and `.tab-panel` are `display: contents`, so the algebra pane's
+ * children are laid out exactly as if the tabs were not there.
+ */
+.tab-bar { display: none; }
+.tab-view { display: contents; }
+.tab-panel { display: contents; }
+
 @media (max-width: 860px) {
   .workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
   .splitter { display: none; }
   .pane-graphics { min-height: 320px; }
 }
+
+/*
+ * Phone: the chart goes on top and the algebra pane becomes three swipeable
+ * tabs. `display: contents` above is what makes this a progressive enhancement -
+ * nothing about the wide layout depends on the tab bar existing.
+ */
+@media (max-width: 640px) {
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    gap: 6px;
+    /* room for the home indicator / gesture bar */
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+  }
+
+  /* the chart leads, and its share of the height is what the splitter drags.
+     `-2` (not `-1`) keeps it above the splitter, which shares the ordering with
+     it: equal orders fall back to DOM order, and the splitter comes first there */
+  .pane-graphics {
+    order: -2;
+    flex: 0 0 var(--mobile-chart, 46%);
+    min-height: 160px;
+  }
+
+  .pane-algebra { flex: 1 1 auto; min-height: 0; }
+
+  .splitter {
+    display: block;
+    flex: 0 0 auto;
+    height: 14px;
+    cursor: row-resize;
+    touch-action: none;
+    /* the chart pane is ordered first, so the splitter has to sit between the
+       two of them explicitly - DOM order alone would put it last */
+    order: -1;
+  }
+  .splitter::after { inset: 5px 38%; }
+
+  /* the tab bar */
+  .tab-bar {
+    display: flex;
+    flex: 0 0 auto;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-alt);
+  }
+  .tab {
+    flex: 1 1 0;
+    padding: 11px 4px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    font: inherit;
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+  .tab[aria-selected='true'] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+  /* one swipe surface: the visible panel does its own scrolling */
+  .tab-view {
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    touch-action: pan-y;
+  }
+  .tab-panel { display: none; height: 100%; overflow-y: auto; overscroll-behavior: contain; }
+  .tab-panel[data-active] { display: block; }
+  /* `#pane-body` is the scroll box on a wide screen; here the panels are */
+  .pane-body { display: contents; }
+
+  /* the swipe animation, and the "coming in from the side" cue */
+  .tab-panel[data-active][data-dir='next'] { animation: tab-in-right var(--motion-in) var(--motion-ease); }
+  .tab-panel[data-active][data-dir='prev'] { animation: tab-in-left var(--motion-in) var(--motion-ease); }
+  @keyframes tab-in-right { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+  @keyframes tab-in-left { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+
+  /* touch-sized controls */
+  .pane-header { padding: 6px 10px; }
+  .pane-actions .btn { min-width: 34px; min-height: 34px; }
+  .graphics-tools { overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+  .graphics-tools::-webkit-scrollbar { display: none; }
+  .graphics-tools .btn { flex: 0 0 auto; }
+  .keyboard button { min-height: 36px; min-width: 38px; }
+  .object-row .object-actions button { min-width: 34px; min-height: 34px; }
+  /* reordering by dragging a row needs a mouse; on a phone the row gets buttons
+     (three classes, so this beats the `display: none` base rule) */
+  .object-row .object-actions .row-move { display: inline-flex; }
+  .help-dialog { width: auto; max-width: none; margin: 8px; max-height: calc(100dvh - 24px); }
+  .settings-dialog .dialog-body { max-height: none; }
+  .drop-card { margin: 12px; }
+
+  /* project export/import also live in the ⚙ dialog, so the phone header keeps
+     only what has no other home - otherwise the actions wrap into two rows */
+  .pane-algebra .pane-actions #btn-export,
+  .pane-algebra .pane-actions #btn-import { display: none; }
+
+  /* the top bar would otherwise wrap into three rows and eat a quarter of a
+     360px screen before the diagram starts */
+  .topbar { flex-wrap: wrap; height: auto; padding: 5px 7px; gap: 3px; }
+  .topbar .app-subtitle { display: none; }
+  .topbar h1, .topbar .app-title { font-size: 14px; }
+  .topbar .control-select { flex: 1 1 auto; min-width: 0; font-size: 11.5px; padding: 2px 4px; }
+  .topbar .btn { padding: 3px 7px; font-size: 11.5px; }
+}
+
+/* the row reorder buttons only exist where dragging does not (see above) */
+.object-row .row-move { display: none; }
+

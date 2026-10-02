@@ -103,6 +103,11 @@ const STRINGS = {
   'object.delete': { zh: '删除', en: 'Delete' },
   'object.error': { zh: '无法求值', en: 'Cannot evaluate' },
   'object.dragHint': { zh: '拖动可调整顺序（或 Alt+↑/↓）', en: 'drag to reorder (or Alt+↑/↓)' },
+  'object.moveUp': { zh: '上移一位', en: 'Move up' },
+  'object.moveDown': { zh: '下移一位', en: 'Move down' },
+  'tab.input': { zh: '输入', en: 'Input' },
+  'tab.formula': { zh: '公式', en: 'Formulas' },
+  'tab.result': { zh: '结果', en: 'Result' },
 
   'help.title': { zh: '语法速查', en: 'Syntax cheat sheet' },
   'help.polar': { zh: '极坐标：220\\angle 30\\degree 或 220\\angle 30', en: 'Polar: 220\\angle 30\\degree or 220\\angle 30' },
