@@ -100,12 +100,17 @@ answer.
 
 ## Quick start
 
-**On Windows, just double-click `start.bat`.** It installs the dependencies and
-builds the app the first time (that needs the network once), then serves it at
+**On Windows, just double-click `start.bat`; on macOS, double-click
+`start.command`.** Either one installs the dependencies and builds the app the
+first time (that needs the network once), then serves it at
 http://localhost:4173/ and opens your browser. Keep its window open while you
-use the app; `start.bat build` forces a rebuild after you change the code.
+use the app; `start.bat build` on Windows or `./start.command build` on macOS
+forces a rebuild after you change the code.
 If the app is already being served on that port, it simply opens the browser
 instead of starting a second copy.
+
+The macOS launcher is a shell script, so it has to keep its executable bit:
+if Finder refuses to run it, `chmod +x start.command` once and try again.
 
 By hand, the app is a static site — everything under `dist/` is the whole program:
 
@@ -136,6 +141,36 @@ Rust toolchain plus the MSVC build tools once. The installer
 (`…\bundle\nsis\Phasor Lab_<version>_x64-setup.exe`, ~1.7 MB) installs for the
 current user only, and it is **not code-signed** — Windows SmartScreen will ask
 for confirmation the first time you run either file.
+
+### Desktop app (macOS)
+
+The same Tauri shell builds a `.app` bundle and a `.dmg` installer on a Mac:
+
+```bash
+npm install
+npx tauri build --no-bundle      # -> src-tauri/target/release/phasor-lab
+npx tauri build                  # -> …/bundle/macos/Phasor Lab.app
+                                 #    and …/bundle/dmg/Phasor Lab_<version>_<arch>.dmg
+```
+
+The target list comes from `src-tauri/tauri.macos.conf.json`, which Tauri merges
+over `tauri.conf.json` on this platform only — the base config still builds the
+NSIS installer on Windows. Building needs the Rust toolchain once
+(`rustup` alone is enough; the `.app` is a native arm64 or x64 binary depending
+on the machine that built it) and uses the WebKit engine macOS already has, so
+nothing has to be installed at runtime.
+
+**macOS 12.3 or newer.** That floor is not a guess: the front end calls
+`Object.hasOwn` and `<dialog>.showModal()`, and both arrived with Safari 15.4,
+the WebKit that ships with 12.3. Older systems are refused by the bundle rather
+than left to fail halfway.
+
+Like the Windows build, the bundle is **not code-signed or notarized**. An app
+that arrived through a browser, an email or a chat app carries the quarantine
+flag and macOS refuses it on the first launch: right-click the app and choose
+*Open*, or clear the flag once with
+`xattr -dr com.apple.quarantine "Phasor Lab.app"`. An app built on your own
+machine runs directly.
 
 ## Syntax reference
 

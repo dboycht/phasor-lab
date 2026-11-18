@@ -3,3 +3,6 @@
 # that mixes non-ASCII content with LF-only line endings.
 *.bat text eol=crlf
 *.cmd text eol=crlf
+# ...and the macOS launcher must stay LF: a CR before the shebang's newline
+# makes Terminal fail with "bad interpreter". It also needs its executable bit.
+*.command text eol=lf
